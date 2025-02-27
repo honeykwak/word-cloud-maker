@@ -154,7 +154,7 @@ const App: React.FC = () => {
     maxSize: 60,
     rotationEnabled: true,
     maxRotation: 90,
-    shape: 'square',
+    shape: 'rectangular',
     colorTheme: 'default',
     minWordLength: 2,
     maxWords: 100,
