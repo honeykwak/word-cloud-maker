@@ -27,16 +27,20 @@ interface WordCloudProps {
 
 const Container = styled.div`
   width: 100%;
+  height: 100%;
   position: relative;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  padding: 20px;
+  box-sizing: border-box;
 `;
 
 const CloudContainer = styled.div<{ $shape: string }>`
-  width: 100%;
-  aspect-ratio: 1/1;  // 항상 정사각형 비율 유지
+  flex: 1;
+  min-height: 0;
   background: #fafafa;
   border-radius: 8px;
-  box-sizing: border-box;
   position: relative;
   display: flex;
   justify-content: center;
@@ -109,11 +113,9 @@ const LoadingOverlay = styled.div`
 `;
 
 const CloudCanvas = styled.canvas<{ $zoom: number, $x: number, $y: number, $isDragging: boolean }>`
-  width: 100%;
-  height: 100%;
-  cursor: ${props => props.$isDragging ? 'grabbing' : 'grab'};
   transform: translate(${props => props.$x}px, ${props => props.$y}px) scale(${props => props.$zoom});
   transform-origin: center center;
+  cursor: ${props => props.$isDragging ? 'grabbing' : 'grab'};
 `;
 
 const ProgressContainer = styled.div`
@@ -378,15 +380,12 @@ const WordCloud: React.FC<WordCloudProps> = ({
   const centerWordCloud = useCallback(() => {
     if (!containerRef.current || !canvasRef.current) return;
     
-    const container = containerRef.current;
-    const canvas = canvasRef.current;
+    // 캔버스 크기를 컨테이너 크기에 기반해 계산
+    // 이때 캔버스의 비율은 유지하면서, 컨테이너 내부에 맞도록 조정
     
-    // 컨테이너와 캔버스의 크기 차이 계산
-    const xOffset = (container.clientWidth - canvas.clientWidth) / 2;
-    const yOffset = (container.clientHeight - canvas.clientHeight) / 2;
-    
-    setZoom(1);  // 원래 크기로
-    setOrigin([xOffset, yOffset]);  // 중앙 위치로
+    // 여기서 적절한 zoom 레벨과 origin 설정
+    setZoom(1);
+    setOrigin([0, 0]);
   }, []);
 
   // 원래 크기 버튼 핸들러 수정
