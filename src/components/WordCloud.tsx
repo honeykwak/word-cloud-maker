@@ -243,7 +243,7 @@ const WordCloud: React.FC<WordCloudProps> = ({
       });
 
     // 0도이고 renderKey가 짝수일 때는 완전 수평, 홀수일 때는 수평/수직 조화
-    const useHybridMode = options.maxRotation === 0 && (renderKey % 2 === 1);
+    const useHybridMode = options.minRotation === options.maxRotation && (renderKey % 2 === 1);
 
     WordCloud2(canvas, {
       list,
@@ -254,12 +254,14 @@ const WordCloud: React.FC<WordCloudProps> = ({
         setPlacedWords(prev => [...prev, word]);
         return colors[Math.floor(fontSize % colors.length)];
       },
-      rotateRatio: useHybridMode ? 0.5 : (options.rotationEnabled ? 1 : 0),
-      rotationSteps: useHybridMode ? 2 : (options.rotationEnabled ? 32 : 1),
-      maxRotation: useHybridMode ? Math.PI / 2 : 
-        (options.rotationEnabled ? options.maxRotation * (Math.PI / 180) : 0),
-      minRotation: useHybridMode ? 0 : 
-        (options.rotationEnabled ? -options.maxRotation * (Math.PI / 180) : 0),
+      rotateRatio: options.minRotation === options.maxRotation ? 0.5 : (options.rotationEnabled ? 1 : 0),
+      rotationSteps: options.minRotation === options.maxRotation ? 2 : (options.rotationEnabled ? 32 : 1),
+      maxRotation: options.minRotation === options.maxRotation ? 
+        options.maxRotation * (Math.PI / 180) : 
+        options.maxRotation * (Math.PI / 180),
+      minRotation: options.minRotation === options.maxRotation ? 
+        0 : 
+        options.minRotation * (Math.PI / 180),
       shape: options.shape === 'custom' && options.customShape 
         ? options.customShape 
         : shapes[options.shape],

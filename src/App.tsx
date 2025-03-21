@@ -46,14 +46,14 @@ const Container = styled.div`
 `;
 
 const Title = styled.h1`
-  text-align: center;
+  text-align: left;
   color: #2c3e50;
-  margin-bottom: 2rem;
+  margin-bottom: 20px;
   font-size: 2.5rem;
   
   @media (max-width: 768px) {
     font-size: 2rem;
-    margin-bottom: 1.5rem;
+    margin-bottom: 15px;
   }
 `;
 
@@ -151,6 +151,7 @@ const App: React.FC = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [options, setOptions] = useState<WordCloudOptions>({
     rotationEnabled: true,
+    minRotation: -90,
     maxRotation: 90,
     shape: 'square',
     colorTheme: 'default',
@@ -251,7 +252,7 @@ const App: React.FC = () => {
     <>
       <GlobalStyle />
       <Container>
-        <Title>워드 클라우드 생성기</Title>
+        <Title>AJOU VIS</Title>
         <Layout>
           <ControlPanelContainer>
             <ControlPanel 

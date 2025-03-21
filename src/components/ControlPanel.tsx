@@ -4,6 +4,7 @@ import { WordCloudOptions } from '../types';
 import { FiDownload, FiUpload, FiCheck, FiX, FiImage } from 'react-icons/fi';
 import TopWordsSelector from './TopWordsSelector';
 import { createShapeFromPNG } from '../utils/shapeUtils';
+import RangeSlider from './RangeSlider';
 
 interface ControlPanelProps {
   options: WordCloudOptions;
@@ -27,12 +28,12 @@ const Container = styled.div`
   @media (max-width: 1024px) {
     margin-top: 0;
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(2, 1fr);
     gap: 15px;
     overflow: auto;
-
-    & > *:nth-child(5),
-    & > *:nth-child(6) {
+    
+    & > *:nth-child(3),
+    & > *:nth-child(4) {
       grid-column: span 2;
     }
   }
@@ -628,23 +629,6 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
 
         <Section>
           <Title>
-            최소 단어 길이
-            <InputContainer>
-              <Input
-                type="number"
-                value={options.minWordLength}
-                onChange={(e) => handleChange('minWordLength', Number(e.target.value))}
-                min={1}
-                max={10}
-              />
-            </InputContainer>
-          </Title>
-        </Section>
-      </SectionRow>
-
-      <SectionRow>
-        <Section>
-          <Title>
             색상
             <InputContainer>
               <Select
@@ -655,6 +639,23 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
                 <option value="warm">따뜻한 색상</option>
                 <option value="cool">차가운 색상</option>
               </Select>
+            </InputContainer>
+          </Title>
+        </Section>
+      </SectionRow>
+
+      <SectionRow>
+        <Section>
+          <Title>
+            최소 단어 길이
+            <InputContainer>
+              <Input
+                type="number"
+                value={options.minWordLength}
+                onChange={(e) => handleChange('minWordLength', Number(e.target.value))}
+                min={1}
+                max={10}
+              />
             </InputContainer>
           </Title>
         </Section>
@@ -734,36 +735,34 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
 
       <Section>
         <Title>
-          회전 각도
+          회전 각도 범위
           <InputContainer>
-            <SliderContainer>
-              <Slider
-                className="stepped"
-                type="range"
-                min={-90}
-                max={90}
-                value={options.maxRotation}
-                step={15}
-                onChange={(e) => {
-                  const value = Number(e.target.value);
-                  handleChange('rotationEnabled', value !== 0);
-                  handleChange('maxRotation', value);
-                }}
-              />
-              <datalist id="rotation-steps">
-                {ROTATION_STEPS.map(step => (
-                  <option key={step} value={step} />
-                ))}
-              </datalist>
-              <NumberInput
-                value={options.maxRotation}
-                onChange={(value) => {
-                  handleChange('rotationEnabled', value !== 0);
-                  handleChange('maxRotation', value);
-                }}
-                unit="°"
-              />
-            </SliderContainer>
+            <RangeSlider
+              min={-90}
+              max={90}
+              step={15}
+              minValue={options.minRotation}
+              maxValue={options.maxRotation}
+              onChange={(min, max) => {
+                // 두 핸들이 같은 값을 가지면 특정 각도로 고정, 아니면 범위 지정
+                const isHybrid = min === max;
+                handleChange('rotationEnabled', min !== 0 || max !== 0);
+                
+                // 여기서 minRotation 값이 실제로 업데이트되는지 확인 필요
+                console.log('RangeSlider onChange - min:', min, 'max:', max);
+                
+                // options 객체를 복사하여 직접 업데이트하는 방식으로 변경
+                const updatedOptions = {
+                  ...options,
+                  minRotation: min, 
+                  maxRotation: max,
+                  rotationEnabled: min !== 0 || max !== 0
+                };
+                
+                // 모든 변경사항을 한 번에 업데이트
+                onOptionsChange(updatedOptions);
+              }}
+            />
           </InputContainer>
         </Title>
       </Section>
@@ -830,19 +829,25 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
           excludedWords={options.excludedWords}
           onToggleWord={handleToggleWord}
         />
+        
+        <div style={{ width: '100%', marginTop: '15px' }}>
+          <IconButton 
+            onClick={onGenerateCloud} 
+            $primary
+            style={{ 
+              width: '100%', 
+              height: '36px',
+              flex: 'none'
+            }}
+          >
+            워드 클라우드 생성
+          </IconButton>
+        </div>
       </ExcludedWordsSection>
-
-      <ButtonColumn style={{ width: '100%', marginTop: '20px' }}>
-        <IconButton 
-          onClick={onGenerateCloud} 
-          $primary
-          style={{ width: '100%' }}
-        >
-          워드 클라우드 생성
-        </IconButton>
-      </ButtonColumn>
     </Container>
   );
 };
 
-export default ControlPanel; 
+export default ControlPanel;
+
+export { NumberInput }; 
