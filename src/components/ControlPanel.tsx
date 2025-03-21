@@ -158,9 +158,24 @@ const InputWrapper = styled.div`
 
 const TextAreaWrapper = styled(InputWrapper)`
   max-width: none;
+  flex: 3;
   
   @media (max-width: 1024px) {
     width: 100%;
+  }
+`;
+
+const ButtonColumn = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+  justify-content: flex-start;
+  min-width: 110px;
+  
+  @media (max-width: 768px) {
+    flex-direction: row;
+    min-width: auto;
   }
 `;
 
@@ -576,8 +591,6 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
             >
               <option value="ko">한국어</option>
               <option value="en">영어</option>
-              <option value="ja">일본어</option>
-              <option value="zh">중국어</option>
               <option value="fr">프랑스어</option>
             </Select>
           </InputContainer>
@@ -756,6 +769,27 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
                 placeholder="쉼표로 구분하여 입력 (예: 그리고, 하지만, 그런데)"
               />
             </TextAreaWrapper>
+            <ButtonColumn>
+              <IconButton as="label" $primary>
+                <FiUpload /> 가져오기
+                <input
+                  type="file"
+                  accept=".txt"
+                  style={{ display: 'none' }}
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      importExcludedWords(file, (words) => {
+                        handleChange('excludedWords', words);
+                      });
+                    }
+                  }}
+                />
+              </IconButton>
+              <IconButton onClick={() => exportExcludedWords(options.excludedWords)}>
+                <FiDownload /> 내보내기
+              </IconButton>
+            </ButtonColumn>
           </InputContainer>
         </Title>
 
@@ -764,28 +798,6 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
           excludedWords={options.excludedWords}
           onToggleWord={handleToggleWord}
         />
-
-        <ButtonContainer>
-          <IconButton as="label" $primary>
-            <FiUpload /> 가져오기
-            <input
-              type="file"
-              accept=".txt"  // JSON에서 TXT로 변경
-              style={{ display: 'none' }}
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) {
-                  importExcludedWords(file, (words) => {
-                    handleChange('excludedWords', words);
-                  });
-                }
-              }}
-            />
-          </IconButton>
-          <IconButton onClick={() => exportExcludedWords(options.excludedWords)}>
-            <FiDownload /> 내보내기
-          </IconButton>
-        </ButtonContainer>
       </ExcludedWordsSection>
     </Container>
   );

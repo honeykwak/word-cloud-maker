@@ -1,4 +1,6 @@
-export type Language = 'ko' | 'en' | 'fr' | 'ja' | 'zh';
+export type Language = 'ko' | 'en' | 'fr';
+
+export type ShapeFunction = (theta: number) => number;
 
 export interface WordCloudOptions {
   rotationEnabled: boolean;

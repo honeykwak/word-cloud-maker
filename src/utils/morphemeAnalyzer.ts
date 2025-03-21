@@ -5,15 +5,6 @@ const patterns = {
     /(다|요|까|네|죠|군요|습니다|입니다)$/,        // 어미
     /(하다|되다|시키다|당하다|스럽다)$/            // 접미사
   ],
-  ja: [
-    /(は|が|を|に|へ|で|と|から|まで|の)$/,    // 助詞(조사)
-    /(です|ます|した|ません|ました)$/,         // 助動詞(조동사)
-    /(する|できる|なる|いる|ある)$/           // 動詞(동사)
-  ],
-  zh: [
-    /(的|了|着|过|地)$/,    // 조사/어미
-    /(和|跟|把|被|让)$/     // 전치사/후치사
-  ],
   fr: [
     /^(le|la|les|un|une|des|l'|d'|de|du)[\s-]/i,
     /^(mon|ton|son|ma|ta|sa|mes|tes|ses|notre|votre|leur|nos|vos|leurs)[\s-]/i,
@@ -49,15 +40,11 @@ export async function analyzeMorphemes(text: string, language: string): Promise<
           );
 
       case 'ko':
-      case 'ja':
-      case 'zh':
         const words = text.split(/\s+/);
         const result: string[] = [];
 
         const isValid = {
-          ko: (w: string) => /^[가-힣]+$/.test(w),
-          ja: (w: string) => /^[\u3040-\u309f\u30a0-\u30ff\u4e00-\u9faf]+$/.test(w),
-          zh: (w: string) => /^[\u4e00-\u9fff]+$/.test(w)
+          ko: (w: string) => /^[가-힣]+$/.test(w)
         };
 
         words.forEach(word => {

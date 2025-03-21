@@ -5,8 +5,6 @@ const patterns = {
     /(다|요|까|네|죠|군요|습니다|입니다)$/,        // 어미
     /(하다|되다|시키다|당하다|스럽다)$/            // 접미사
   ],
-  ja: [/* 일본어 패턴 */],
-  zh: [/* 중국어 패턴 */],
   fr: [/* 프랑스어 패턴 */]
 };
 
@@ -35,15 +33,11 @@ async function analyzeMorphemes(text: string, language: string): Promise<string[
           );
 
       case 'ko':
-      case 'ja':
-      case 'zh':
         const words = text.split(/\s+/);
         const result: string[] = [];
 
         const isValid = {
-          ko: (w: string) => /^[가-힣]+$/.test(w),
-          ja: (w: string) => /^[\u3040-\u309f\u30a0-\u30ff\u4e00-\u9faf]+$/.test(w),
-          zh: (w: string) => /^[\u4e00-\u9fff]+$/.test(w)
+          ko: (w: string) => /^[가-힣]+$/.test(w)
         };
 
         words.forEach(word => {
