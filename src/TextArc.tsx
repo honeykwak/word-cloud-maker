@@ -1,11 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import TextInput from './components/TextInput';
-import WordCloud from './components/WordCloud';
-import ControlPanel from './components/ControlPanel';
-import { WordCloudOptions, Word } from './types';
-import { processText } from './utils/textProcessing';
-import styled, { createGlobalStyle } from 'styled-components';
 import { useNavigate } from 'react-router-dom';
+import styled, { createGlobalStyle } from 'styled-components';
+import TextInput from './components/TextInput';
+import TextArcVisualizer from './components/TextArcVisualizer';
+import { Word } from './types';
 
 const GlobalStyle = createGlobalStyle`
   * {
@@ -51,6 +49,7 @@ const Title = styled.h1`
   color: #2c3e50;
   margin-bottom: 20px;
   font-size: 2.5rem;
+  cursor: pointer;
   
   @media (max-width: 768px) {
     font-size: 2rem;
@@ -108,9 +107,13 @@ const InputSection = styled.div`
   }
 `;
 
-const CloudSection = styled.div`
+const ArcSection = styled.div`
   flex: 2;
   min-height: 0;
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
   
   @media (max-width: 1024px) {
     flex: 1 1 auto;
@@ -124,11 +127,21 @@ const ControlPanelContainer = styled.div`
   background: #ffffff;
   border-radius: 12px;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  display: flex;
+  justify-content: center;
+  align-items: center;
   
   @media (max-width: 1024px) {
     height: auto;
     overflow-y: visible;
+    grid-area: controls;
   }
+`;
+
+const ComingSoonText = styled.div`
+  font-size: 1.5rem;
+  color: #94a3b8;
+  text-align: center;
 `;
 
 const Copyright = styled.div`
@@ -138,74 +151,63 @@ const Copyright = styled.div`
   text-align: center;
 `;
 
-const colors = {
-  primary: '#2196F3',
-  secondary: '#4CAF50',
-  text: '#2c3e50',
-  border: '#e2e8f0',
-  background: '#f5f7f9'
-};
+const GenerateButton = styled.button`
+  padding: 12px 24px;
+  background-color: #2196F3;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.3s;
+  margin: 0 auto;
+  display: block;
+  
+  &:hover {
+    background-color: #1976D2;
+  }
+  
+  &:disabled {
+    background-color: #e2e8f0;
+    cursor: not-allowed;
+  }
+`;
 
-const App: React.FC = () => {
+const TextArc: React.FC = () => {
+  const navigate = useNavigate();
   const [text, setText] = useState('');
   const [processedWords, setProcessedWords] = useState<Word[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [options, setOptions] = useState<WordCloudOptions>({
-    rotationEnabled: true,
-    minRotation: -30,
-    maxRotation: 30,
-    shape: 'square',
-    colorTheme: 'default',
-    minWordLength: 2,
-    maxWords: 100,
-    excludedWords: [],
-    language: 'en'
-  });
-  const [processingStatus, setProcessingStatus] = useState<string>('');
-  const [renderKey, setRenderKey] = useState(0);
-  const [pendingOptions, setPendingOptions] = useState<WordCloudOptions>(options);
-  const [hasOptionChanges, setHasOptionChanges] = useState(false);
-  const [uniqueWordCount, setUniqueWordCount] = useState(0);
-
-  const navigate = useNavigate();
-
+  const [processingStatus, setProcessingStatus] = useState('');
+  
+  const navigateToRoot = () => {
+    navigate('/');
+  };
+  
   const handleTextChange = (newText: string) => {
     setText(newText);
-    
-    // 고유 단어 수 계산
-    const words = newText.trim().split(/\s+/);
-    const uniqueWords = new Set(words.map(w => w.toLowerCase()));
-    setUniqueWordCount(uniqueWords.size);
   };
-
-  const handleOptionsChange = (newOptions: WordCloudOptions) => {
-    setPendingOptions(newOptions);
-    setHasOptionChanges(true);
-  };
-
+  
   const handleGenerate = () => {
     if (!text.trim()) {
       alert('텍스트를 입력해주세요.');
       return;
     }
 
-    setOptions(pendingOptions);
-    setHasOptionChanges(false);
     setIsGenerating(true);
-    setRenderKey(prev => prev + 1);
 
     try {
       // Web Worker 생성
       const worker = new Worker(new URL('./workers/textProcessing.worker.ts', import.meta.url));
 
       worker.onmessage = (e) => {
-        const { type, words, error, status, stats } = e.data;
+        const { type, words, error, status } = e.data;
         
         if (type === 'progress') {
           console.log('Progress:', status);
           setProcessingStatus(status);
         } else if (type === 'success') {
-          console.log('Processing complete:', stats);
           if (words.length === 0) {
             alert('처리할 수 있는 단어가 없습니다.');
           } else {
@@ -234,10 +236,10 @@ const App: React.FC = () => {
       // 작업 시작
       worker.postMessage({
         text,
-        language: pendingOptions.language,
-        minWordLength: pendingOptions.minWordLength,
-        excludedWords: pendingOptions.excludedWords,
-        maxWords: pendingOptions.maxWords
+        language: 'en',
+        minWordLength: 2,
+        excludedWords: [],
+        maxWords: 100
       });
 
     } catch (error) {
@@ -246,32 +248,30 @@ const App: React.FC = () => {
       alert('텍스트 처리 중 오류가 발생했습니다.');
     }
   };
-
-  const handleRegenerate = () => {
-    setRenderKey(prev => prev + 1);
-  };
-
-  const navigateToRoot = () => {
-    navigate('/');
-  };
-
+  
   return (
     <>
       <GlobalStyle />
       <Container>
-        <Title onClick={navigateToRoot} style={{ cursor: 'pointer' }}>
+        <Title onClick={navigateToRoot}>
           AJOU visualization tester
         </Title>
+        
         <Layout>
           <ControlPanelContainer>
-            <ControlPanel 
-              options={pendingOptions}
-              onOptionsChange={handleOptionsChange}
-              words={processedWords}
-              totalUniqueWords={uniqueWordCount}
-              onGenerateCloud={handleGenerate}
-            />
+            <div style={{ padding: '20px', width: '100%' }}>
+              <ComingSoonText style={{ marginBottom: '20px' }}>
+                설정 패널 준비 중...
+              </ComingSoonText>
+              <GenerateButton 
+                onClick={handleGenerate}
+                disabled={isGenerating || !text.trim()}
+              >
+                {isGenerating ? '생성 중...' : 'TextArc 생성하기'}
+              </GenerateButton>
+            </div>
           </ControlPanelContainer>
+          
           <MainContent>
             <InputSection>
               <TextInput 
@@ -279,18 +279,17 @@ const App: React.FC = () => {
                 isGenerating={isGenerating}
               />
             </InputSection>
-            <CloudSection>
-              <WordCloud 
+            <ArcSection>
+              <TextArcVisualizer 
                 words={processedWords}
-                options={options}
+                text={text}
                 isGenerating={isGenerating}
                 processingStatus={processingStatus}
-                renderKey={renderKey}
-                onRegenerate={handleRegenerate}
               />
-            </CloudSection>
+            </ArcSection>
           </MainContent>
         </Layout>
+        
         <Copyright>
           © 2024-2025 Kwak Jaeheon. All rights reserved.
         </Copyright>
@@ -299,4 +298,4 @@ const App: React.FC = () => {
   );
 };
 
-export default App;
+export default TextArc; 
