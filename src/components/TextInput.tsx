@@ -4,9 +4,7 @@ import styled from 'styled-components';
 
 interface TextInputProps {
   onTextChange: (text: string) => void;
-  onGenerate: () => void;
   isGenerating: boolean;
-  hasChanges: boolean;
 }
 
 const Container = styled.div`
@@ -125,29 +123,6 @@ const Button = styled.button`
   }
 `;
 
-const GenerateButton = styled.button<{ $hasChanges: boolean }>`
-  width: 100%;
-  padding: 12px;
-  background-color: ${props => props.$hasChanges ? '#2196F3' : '#90CAF9'};
-  color: white;
-  border: none;
-  border-radius: 20px;
-  cursor: pointer;
-  transition: all 0.3s;
-  font-size: 1rem;
-  font-weight: 500;
-  margin-top: 8px;
-  
-  &:hover {
-    background-color: ${props => props.$hasChanges ? '#1976D2' : '#64B5F6'};
-  }
-  
-  &:disabled {
-    background-color: #e2e8f0;
-    cursor: not-allowed;
-  }
-`;
-
 const StatsContainer = styled.div`
   color: #64748b;
   font-size: 0.875rem;
@@ -176,9 +151,7 @@ const formatNumber = (num: number) => {
 
 const TextInput: React.FC<TextInputProps> = ({ 
   onTextChange, 
-  onGenerate, 
-  isGenerating,
-  hasChanges
+  isGenerating
 }) => {
   const [currentText, setCurrentText] = useState('');
   const [showMergeButtons, setShowMergeButtons] = useState(false);
@@ -304,13 +277,6 @@ const TextInput: React.FC<TextInputProps> = ({
             </Button>
           </ButtonGroup>
         )}
-        <GenerateButton 
-          onClick={onGenerate} 
-          disabled={isGenerating}
-          $hasChanges={hasChanges}
-        >
-          {isGenerating ? '생성 중...' : '워드 클라우드 생성'}
-        </GenerateButton>
       </RightContainer>
     </Container>
   );

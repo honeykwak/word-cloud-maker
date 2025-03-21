@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import styled from 'styled-components';
 import { WordCloudOptions } from '../types';
-import { FiDownload, FiUpload, FiCheck, FiX } from 'react-icons/fi';
+import { FiDownload, FiUpload, FiCheck, FiX, FiImage } from 'react-icons/fi';
 import TopWordsSelector from './TopWordsSelector';
 import { createShapeFromPNG } from '../utils/shapeUtils';
 
@@ -10,6 +10,7 @@ interface ControlPanelProps {
   onOptionsChange: (options: WordCloudOptions) => void;
   totalUniqueWords: number;
   words: Word[];
+  onGenerateCloud: () => void;
 }
 
 const Container = styled.div`
@@ -20,6 +21,8 @@ const Container = styled.div`
   height: 100%;
   box-sizing: border-box;
   overflow-y: auto;
+  display: flex;
+  flex-direction: column;
   
   @media (max-width: 1024px) {
     margin-top: 0;
@@ -48,6 +51,23 @@ const Section = styled.div`
   }
 
   @media (max-width: 1024px) {
+    margin-bottom: 0;
+  }
+`;
+
+const SectionRow = styled.div`
+  display: flex;
+  gap: 20px;
+  margin-bottom: 25px;
+  
+  & > * {
+    flex: 1;
+    margin-bottom: 0;
+  }
+  
+  @media (max-width: 1024px) {
+    flex-direction: column;
+    gap: 15px;
     margin-bottom: 0;
   }
 `;
@@ -121,16 +141,16 @@ const InputContainer = styled.div`
   width: 100%;
   min-width: 0;
 
-  // Select가 더 많은 공간을 차지하도록
+  // 선택 요소와 업로드 버튼의 비율 조정
   select {
-    flex: 2;
+    flex: 3;
     min-width: 0;
   }
 
-  // 업로드 버튼이 더 작은 공간을 차지하도록
-  label {
-    flex: 1;
-    min-width: 40px;
+  // 업로드 버튼 스타일 조정
+  label, button[as="label"] {
+    flex: 1.2;
+    min-width: 90px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -371,12 +391,19 @@ const UploadButton = styled(IconButton)<{ $isUploaded: boolean }>`
   color: ${props => props.$isUploaded ? '#2196F3' : '#475569'};
   border: 1px solid ${props => props.$isUploaded ? '#2196F3' : '#e2e8f0'};
   position: relative;
+  padding: 6px 10px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 4px;
   
   &:hover {
     background: ${props => props.$isUploaded ? '#d1e9ff' : '#f8f9fa'};
   }
 
   span {
+    margin-left: 4px;
+    
     @media (max-width: 1024px) {
       display: none;
     }
@@ -474,7 +501,8 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
   options, 
   onOptionsChange,
   totalUniqueWords,  // prop 추가 필요
-  words
+  words,
+  onGenerateCloud
 }) => {
   // 파일 업로드 상태 관리를 위한 state 추가
   const [uploadState, setUploadState] = useState<UploadState>({
@@ -581,124 +609,128 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
 
   return (
     <Container>
-      <Section>
-        <Title>
-          언어
-          <InputContainer>
-            <Select
-              value={options.language}
-              onChange={(e) => handleChange('language', e.target.value)}
-            >
-              <option value="ko">한국어</option>
-              <option value="en">영어</option>
-              <option value="fr">프랑스어</option>
-            </Select>
-          </InputContainer>
-        </Title>
-      </Section>
-
-      <Section>
-        <Title>
-          모양
-          <InputContainer>
-            <Select
-              value={options.shape}
-              onChange={(e) => handleChange('shape', e.target.value)}
-            >
-              <option value="square">정사각형</option>
-              <option value="circle">원형</option>
-              <option value="cardioid">심장형</option>
-              <option value="diamond">다이아몬드</option>
-              <option value="triangle">삼각형</option>
-              <option value="pentagon">오각형</option>
-              <option value="star">별형</option>
-            </Select>
-            <UploadButton 
-              as={uploadState.isUploaded ? 'button' : 'label'} 
-              $isUploaded={uploadState.isUploaded}
-              onClick={(e) => {
-                if (uploadState.isUploaded) {
-                  e.preventDefault();
-                  handleRemoveCustomShape();
-                }
-              }}
-            >
-              {uploadState.isUploaded ? (
-                // 업로드된 상태에서는 삭제 아이콘 표시
-                <>
-                  <FiX />
-                  <span>PNG 제거</span>
-                </>
-              ) : (
-                // 업로드되지 않은 상태에서는 업로드 아이콘과 input 표시
-                <>
-                  <FiUpload />
-                  <span>PNG 업로드</span>
-                  <input
-                    type="file"
-                    accept="image/png"
-                    style={{ display: 'none' }}
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) handleCustomShapeUpload(file);
-                    }}
-                  />
-                </>
-              )}
-            </UploadButton>
-          </InputContainer>
-        </Title>
-        {uploadState.isUploaded && (
-          <FileInfo>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <FiCheck size={14} />
-              {uploadState.fileName}
-            </div>
-            <FileActions>
-              <ActionButton
-                onClick={(e) => {
-                  e.preventDefault();
-                  handleRemoveCustomShape();
-                }}
-                title="모양 제거"
+      <SectionRow>
+        <Section>
+          <Title>
+            언어
+            <InputContainer>
+              <Select
+                value={options.language}
+                onChange={(e) => handleChange('language', e.target.value)}
               >
-                <FiX size={14} />
-              </ActionButton>
-            </FileActions>
-          </FileInfo>
-        )}
-      </Section>
+                <option value="ko">한국어</option>
+                <option value="en">영어</option>
+                <option value="fr">프랑스어</option>
+              </Select>
+            </InputContainer>
+          </Title>
+        </Section>
 
-      <Section>
-        <Title>
-          색상
-          <InputContainer>
-            <Select
-              value={options.colorTheme}
-              onChange={(e) => handleChange('colorTheme', e.target.value)}
-            >
-              <option value="default">기본</option>
-              <option value="warm">따뜻한 색상</option>
-              <option value="cool">차가운 색상</option>
-            </Select>
-          </InputContainer>
-        </Title>
-      </Section>
+        <Section>
+          <Title>
+            최소 단어 길이
+            <InputContainer>
+              <Input
+                type="number"
+                value={options.minWordLength}
+                onChange={(e) => handleChange('minWordLength', Number(e.target.value))}
+                min={1}
+                max={10}
+              />
+            </InputContainer>
+          </Title>
+        </Section>
+      </SectionRow>
 
-      <Section>
-        <Title>
-          최소 단어 길이
-          <InputContainer>
-            <Input
-              type="number"
-              value={options.minWordLength}
-              onChange={(e) => handleChange('minWordLength', Number(e.target.value))}
-              min={1}
-              max={10}
-            />
-          </InputContainer>
-        </Title>
-      </Section>
+      <SectionRow>
+        <Section>
+          <Title>
+            색상
+            <InputContainer>
+              <Select
+                value={options.colorTheme}
+                onChange={(e) => handleChange('colorTheme', e.target.value)}
+              >
+                <option value="default">기본</option>
+                <option value="warm">따뜻한 색상</option>
+                <option value="cool">차가운 색상</option>
+              </Select>
+            </InputContainer>
+          </Title>
+        </Section>
+
+        <Section>
+          <Title>
+            모양
+            <InputContainer>
+              <Select
+                value={options.shape}
+                onChange={(e) => handleChange('shape', e.target.value)}
+              >
+                <option value="square">정사각형</option>
+                <option value="circle">원형</option>
+                <option value="cardioid">심장형</option>
+                <option value="diamond">다이아몬드</option>
+                <option value="triangle">삼각형</option>
+                <option value="pentagon">오각형</option>
+                <option value="star">별형</option>
+              </Select>
+              <UploadButton 
+                as={uploadState.isUploaded ? 'button' : 'label'} 
+                $isUploaded={uploadState.isUploaded}
+                onClick={(e) => {
+                  if (uploadState.isUploaded) {
+                    e.preventDefault();
+                    handleRemoveCustomShape();
+                  }
+                }}
+              >
+                {uploadState.isUploaded ? (
+                  // 업로드된 상태에서는 삭제 아이콘 표시
+                  <>
+                    <FiX />
+                    <span>제거</span>
+                  </>
+                ) : (
+                  // 업로드되지 않은 상태에서는 업로드 아이콘과 input 표시
+                  <>
+                    <FiImage />
+                    <span>PNG</span>
+                    <input
+                      type="file"
+                      accept="image/png"
+                      style={{ display: 'none' }}
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) handleCustomShapeUpload(file);
+                      }}
+                    />
+                  </>
+                )}
+              </UploadButton>
+            </InputContainer>
+          </Title>
+          {uploadState.isUploaded && (
+            <FileInfo>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <FiCheck size={14} />
+                {uploadState.fileName}
+              </div>
+              <FileActions>
+                <ActionButton
+                  onClick={(e) => {
+                    e.preventDefault();
+                    handleRemoveCustomShape();
+                  }}
+                  title="모양 제거"
+                >
+                  <FiX size={14} />
+                </ActionButton>
+              </FileActions>
+            </FileInfo>
+          )}
+        </Section>
+      </SectionRow>
 
       <Section>
         <Title>
@@ -799,6 +831,16 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
           onToggleWord={handleToggleWord}
         />
       </ExcludedWordsSection>
+
+      <ButtonColumn style={{ width: '100%', marginTop: '20px' }}>
+        <IconButton 
+          onClick={onGenerateCloud} 
+          $primary
+          style={{ width: '100%' }}
+        >
+          워드 클라우드 생성
+        </IconButton>
+      </ButtonColumn>
     </Container>
   );
 };

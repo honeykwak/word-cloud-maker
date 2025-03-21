@@ -150,17 +150,14 @@ const App: React.FC = () => {
   const [processedWords, setProcessedWords] = useState<Word[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
   const [options, setOptions] = useState<WordCloudOptions>({
-    minSize: 12,
-    maxSize: 60,
     rotationEnabled: true,
     maxRotation: 90,
-    shape: 'rectangular',
+    shape: 'square',
     colorTheme: 'default',
     minWordLength: 2,
     maxWords: 100,
     excludedWords: [],
-    language: 'en',
-    aspectRatio: '16:9'
+    language: 'en'
   });
   const [processingStatus, setProcessingStatus] = useState<string>('');
   const [renderKey, setRenderKey] = useState(0);
@@ -262,15 +259,14 @@ const App: React.FC = () => {
               onOptionsChange={handleOptionsChange}
               words={processedWords}
               totalUniqueWords={uniqueWordCount}
+              onGenerateCloud={handleGenerate}
             />
           </ControlPanelContainer>
           <MainContent>
             <InputSection>
               <TextInput 
                 onTextChange={handleTextChange} 
-                onGenerate={handleGenerate}
                 isGenerating={isGenerating}
-                hasChanges={hasOptionChanges}
               />
             </InputSection>
             <CloudSection>
