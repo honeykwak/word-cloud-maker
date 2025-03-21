@@ -26,7 +26,7 @@ const RangeProgress = styled.div<{ $left: number; $width: number }>`
   width: ${props => props.$width}%;
 `;
 
-const Thumb = styled.div<{ $position: number }>`
+const Thumb = styled.div<{ $position: number; $priority?: boolean }>`
   position: absolute;
   width: 16px;
   height: 16px;
@@ -37,7 +37,7 @@ const Thumb = styled.div<{ $position: number }>`
   transform: translate(-50%, -50%);
   cursor: pointer;
   transition: transform 0.2s;
-  z-index: 1;
+  z-index: ${props => props.$priority ? 3 : 1};
 
   &:hover {
     transform: translate(-50%, -50%) scale(1.1);
@@ -157,9 +157,10 @@ const RangeSlider: React.FC<RangeSliderProps> = ({
       <NumberInput
         value={minValue}
         onChange={(value) => {
-          console.log('Min input changed to:', value);
-          // 최소값은 최대값을 초과할 수 없음
-          const newMinValue = Math.min(value, maxValue);
+          // 범위 제한 추가: min ~ max 사이의 값으로 제한
+          const boundedValue = Math.max(min, Math.min(max, value));
+          // 기존 제약: 최대값을 초과할 수 없음
+          const newMinValue = Math.min(boundedValue, maxValue);
           onChange(newMinValue, maxValue);
         }}
         unit={unit}
@@ -171,7 +172,8 @@ const RangeSlider: React.FC<RangeSliderProps> = ({
           $width={maxPercent - minPercent} 
         />
         <Thumb 
-          $position={minPercent} 
+          $position={minPercent}
+          $priority={minValue === 90 && maxValue === 90}
           onMouseDown={(e) => {
             console.log('Min thumb mouse down');
             e.stopPropagation(); // 이벤트 버블링 방지
@@ -179,7 +181,7 @@ const RangeSlider: React.FC<RangeSliderProps> = ({
           }}
         />
         <Thumb 
-          $position={maxPercent} 
+          $position={maxPercent}
           onMouseDown={(e) => {
             console.log('Max thumb mouse down');
             e.stopPropagation(); // 이벤트 버블링 방지
@@ -191,9 +193,10 @@ const RangeSlider: React.FC<RangeSliderProps> = ({
       <NumberInput
         value={maxValue}
         onChange={(value) => {
-          console.log('Max input changed to:', value);
-          // 최대값은 최소값보다 작을 수 없음
-          const newMaxValue = Math.max(value, minValue);
+          // 범위 제한 추가: min ~ max 사이의 값으로 제한
+          const boundedValue = Math.max(min, Math.min(max, value));
+          // 기존 제약: 최소값보다 작을 수 없음
+          const newMaxValue = Math.max(boundedValue, minValue);
           onChange(minValue, newMaxValue);
         }}
         unit={unit}

@@ -32,7 +32,7 @@ const Container = styled.div`
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  padding: 20px;
+  padding: 0;
   box-sizing: border-box;
 `;
 
