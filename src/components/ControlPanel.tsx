@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import ReactDOM from 'react-dom';
 import styled from 'styled-components';
 import { WordCloudOptions } from '../types';
 import { FiDownload, FiUpload, FiCheck, FiX, FiImage } from 'react-icons/fi';
@@ -498,6 +499,277 @@ const MobileTooltip = styled.div<{ $show: boolean }>`
   }
 `;
 
+// 색상 선택 컴포넌트 추가
+const ColorPicker = styled.input`
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: none;
+  cursor: pointer;
+  overflow: hidden;
+  
+  &::-webkit-color-swatch-wrapper {
+    padding: 0;
+  }
+  
+  &::-webkit-color-swatch {
+    border: 1px solid #e2e8f0;
+    border-radius: 50%;
+  }
+  
+  &:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(33, 150, 243, 0.3);
+  }
+`;
+
+const ColorPickersContainer = styled.div`
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+`;
+
+// 버튼 컴포넌트 추가
+const Button = styled.button`
+  padding: 4px 12px;
+  background-color: #2196F3;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 0.875rem;
+  font-weight: 500;
+  
+  &:hover {
+    background-color: #1976D2;
+  }
+`;
+
+// 색상 테마 버튼 컴포넌트
+const ColorThemeButton = styled.button<{ $isSelected: boolean }>`
+  min-width: 40px;
+  max-width: 60px;
+  flex: 1;
+  height: 40px;
+  border-radius: 6px;
+  border: 2px solid ${props => props.$isSelected ? '#2196F3' : '#e2e8f0'};
+  padding: 2px;
+  cursor: pointer;
+  background: white;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition: all 0.2s;
+  
+  &:hover {
+    border-color: ${props => props.$isSelected ? '#2196F3' : '#cbd5e1'};
+    transform: translateY(-2px);
+  }
+  
+  /* 브라우저 기본 포커스 스타일 제거하고 선택 상태에 따른 테두리 색상 유지 */
+  &:focus {
+    outline: none;
+    border-color: ${props => props.$isSelected ? '#2196F3' : '#e2e8f0'};
+  }
+  
+  /* 포커스를 잃은 후에도 선택 상태에 따른 테두리 색상 유지 */
+  &:focus-visible {
+    outline: none;
+    border-color: ${props => props.$isSelected ? '#2196F3' : '#e2e8f0'};
+  }
+  
+  @media (max-width: 768px) {
+    min-width: 30px;
+  }
+`;
+
+const ColorStripe = styled.div<{ $color: string }>`
+  flex: 1;
+  background-color: ${props => props.$color};
+`;
+
+const ColorThemesContainer = styled.div`
+  display: flex;
+  gap: 10px;
+  margin-top: 8px;
+  width: 100%;
+`;
+
+const CustomThemeButton = styled(ColorThemeButton)`
+  position: relative;
+  flex: 1;
+  min-width: 40px;
+  max-width: 60px;
+  
+  /* 'C' 텍스트는 색상이 없을 때만 표시되도록 절대 위치로 변경 */
+  span {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 1.2rem;
+    font-weight: 500;
+    color: #5E81AC;
+    z-index: 1;
+  }
+`;
+
+const AddColorBox = styled.div`
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #f8fafc;
+  color: #64748b;
+  font-size: 1.2rem;
+  cursor: pointer;
+  
+  &:hover {
+    background-color: #f1f5f9;
+  }
+`;
+
+const CustomColorsContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  margin-top: 12px;
+`;
+
+const ColorBoxGrid = styled.div`
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  border-radius: 4px;
+  overflow: hidden;
+  border: 1px solid #e2e8f0;
+`;
+
+const ColorBox = styled.div<{ $color: string }>`
+  height: 36px;
+  background-color: ${props => props.$color};
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 0 8px;
+  position: relative;
+  
+  &:hover {
+    cursor: pointer;
+    
+    .delete-button {
+      opacity: 1;
+    }
+  }
+`;
+
+const DeleteButton = styled.button`
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  z-index: 1;
+  font-size: 16px;
+  font-weight: bold;
+  color: #ffffff;
+  text-shadow: 0 0 2px rgba(0, 0, 0, 0.5);
+  margin-left: 4px;
+  
+  &:hover {
+    color: #ff4d4d;
+  }
+`;
+
+const getColorScheme = (theme: string) => {
+  switch (theme) {
+    case 'warm':
+      return ['#ff4d4d', '#ff9933', '#ffcc00', '#ff6666', '#ff8000'];
+    case 'cool':
+      return ['#3366cc', '#33cccc', '#3399ff', '#6666ff', '#0099cc'];
+    default:
+      return ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd'];
+  }
+};
+
+// 팝업 관련 컴포넌트 추가
+const ColorPopupPortal = ({ children, isOpen }) => {
+  if (!isOpen) return null;
+  return ReactDOM.createPortal(
+    children,
+    document.body
+  );
+};
+
+const ColorPopupContainer = styled.div<{ $top: number; $left: number }>`
+  position: fixed;
+  top: ${props => props.$top}px;
+  left: ${props => props.$left}px;
+  width: 250px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  padding: 16px;
+  z-index: 1000;
+`;
+
+const PopupOverlay = styled.div`
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: transparent;
+  z-index: 999;
+`;
+
+// 누락된 컴포넌트들 추가
+const RelativeContainer = styled.div`
+  position: relative;
+  flex: 1;
+  display: flex;
+`;
+
+const PopupTitle = styled.div`
+  font-weight: 500;
+  font-size: 14px;
+  color: #475569;
+  margin-bottom: 12px;
+`;
+
+const CloseButton = styled.button`
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: none;
+  border: none;
+  color: #64748b;
+  cursor: pointer;
+  padding: 4px;
+  
+  &:hover {
+    color: #475569;
+  }
+`;
+
+const ColorPickerGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 8px;
+  margin-bottom: 12px;
+`;
+
+const PopupActions = styled.div`
+  display: flex;
+  justify-content: space-between;
+  margin-top: 12px;
+`;
+
 const ControlPanel: React.FC<ControlPanelProps> = ({ 
   options, 
   onOptionsChange,
@@ -510,6 +782,12 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
     fileName: '',
     isUploaded: false
   });
+
+  // ControlPanel 컴포넌트 내부에 state 추가
+  const [colorPopupOpen, setColorPopupOpen] = useState(false);
+
+  const customButtonRef = useRef<HTMLButtonElement>(null);
+  const [popupPosition, setPopupPosition] = useState({ top: 0, left: 0 });
 
   const handleChange = (key: keyof WordCloudOptions, value: any) => {
     onOptionsChange({
@@ -608,6 +886,18 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
 
   const [showTooltip, setShowTooltip] = useState(false);
 
+  // 팝업을 표시할 때 위치 계산
+  const handleOpenColorPopup = () => {
+    if (customButtonRef.current) {
+      const rect = customButtonRef.current.getBoundingClientRect();
+      setPopupPosition({
+        top: rect.bottom + window.scrollY + 10,
+        left: rect.left + window.scrollX
+      });
+    }
+    setColorPopupOpen(true);
+  };
+
   return (
     <Container>
       <SectionRow>
@@ -628,19 +918,176 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
         </Section>
 
         <Section>
-          <Title>
-            색상
-            <InputContainer>
-              <Select
-                value={options.colorTheme}
-                onChange={(e) => handleChange('colorTheme', e.target.value)}
+          <Title>색상</Title>
+          <ColorThemesContainer>
+            <ColorThemeButton 
+              $isSelected={options.colorTheme === 'default'}
+              onClick={() => handleChange('colorTheme', 'default')}
+              title="기본 색상"
+            >
+              {getColorScheme('default').map((color, index) => (
+                <ColorStripe key={index} $color={color} />
+              ))}
+            </ColorThemeButton>
+            
+            <ColorThemeButton 
+              $isSelected={options.colorTheme === 'warm'}
+              onClick={() => handleChange('colorTheme', 'warm')}
+              title="따뜻한 색상"
+            >
+              {getColorScheme('warm').map((color, index) => (
+                <ColorStripe key={index} $color={color} />
+              ))}
+            </ColorThemeButton>
+            
+            <ColorThemeButton 
+              $isSelected={options.colorTheme === 'cool'}
+              onClick={() => handleChange('colorTheme', 'cool')}
+              title="차가운 색상"
+            >
+              {getColorScheme('cool').map((color, index) => (
+                <ColorStripe key={index} $color={color} />
+              ))}
+            </ColorThemeButton>
+            
+            <RelativeContainer>
+              <CustomThemeButton 
+                ref={customButtonRef}
+                $isSelected={options.colorTheme === 'custom'}
+                onClick={() => {
+                  console.log('Before update:', options.colorTheme, options.customColors);
+                  
+                  // customColors가 배열인지 확인하고 항상 배열로 처리
+                  const updatedOptions = {
+                    ...options,
+                    colorTheme: 'custom' as const, // 타입을 명시적으로 지정
+                    customColors: Array.isArray(options.customColors) ? [...options.customColors] : []
+                  };
+                  
+                  console.log('After update:', updatedOptions.colorTheme, updatedOptions.customColors);
+                  
+                  onOptionsChange(updatedOptions);
+                  handleOpenColorPopup();
+                }}
+                title="직접 선택"
               >
-                <option value="default">기본</option>
-                <option value="warm">따뜻한 색상</option>
-                <option value="cool">차가운 색상</option>
-              </Select>
-            </InputContainer>
-          </Title>
+                {/* 로깅을 통해 렌더링 조건 확인 */}
+                {console.log('Rendering button:', 
+                  options.colorTheme, 
+                  options.customColors, 
+                  Array.isArray(options.customColors), 
+                  options.customColors?.length
+                )}
+                
+                {/* 조건부 렌더링 로직 단순화 */}
+                {options.colorTheme === 'custom' && Array.isArray(options.customColors) && options.customColors.length > 0 ? (
+                  options.customColors.map((color, index) => (
+                    <ColorStripe key={index} $color={color} />
+                  ))
+                ) : (
+                  <span>C</span>
+                )}
+              </CustomThemeButton>
+              
+              <ColorPopupPortal isOpen={colorPopupOpen}>
+                <PopupOverlay onClick={() => setColorPopupOpen(false)} />
+                <ColorPopupContainer $top={popupPosition.top} $left={popupPosition.left}>
+                  <PopupTitle>커스텀 색상 선택</PopupTitle>
+                  <CloseButton onClick={() => setColorPopupOpen(false)}>✕</CloseButton>
+                  
+                  <CustomColorsContainer>
+                    <ColorBoxGrid>
+                      {(options.customColors || []).map((color, index) => (
+                        <ColorBox 
+                          key={index} 
+                          $color={color}
+                          onClick={(e) => {
+                            // 클릭 이벤트가 DeleteButton에서 발생했는지 확인
+                            if ((e.target as HTMLElement).closest('.delete-button')) {
+                              return; // DeleteButton 클릭 시 색상 선택 방지
+                            }
+                            
+                            // 색상 선택기를 특정 위치에 표시하기 위한 준비
+                            // 1. 클릭한 위치(e.clientX, e.clientY) 근처에 색상 선택기를 배치
+                            const popupRect = e.currentTarget.getBoundingClientRect();
+                            const x = popupRect.right + 10; // 색상 상자 우측에서 10px 떨어진 위치
+                            const y = popupRect.top;        // 색상 상자와 같은 높이
+                            
+                            // 2. 색상 선택기 생성 및 스타일 적용
+                            const input = document.createElement('input');
+                            input.type = 'color';
+                            input.value = color;
+                            
+                            // 3. 스타일 적용하여 위치 조정 (모든 브라우저에서 작동하지 않을 수 있음)
+                            input.style.position = 'fixed';
+                            input.style.left = `${x}px`;
+                            input.style.top = `${y}px`;
+                            input.style.opacity = '0';      // 숨겨서 위치만 조정
+                            input.style.pointerEvents = 'none'; // 직접 상호작용 방지
+                            
+                            // 4. 색상 변경 이벤트 핸들러 추가
+                            input.addEventListener('change', (e) => {
+                              const newColors = [...(options.customColors || [])];
+                              newColors[index] = e.target.value;
+                              onOptionsChange({
+                                ...options,
+                                colorTheme: 'custom',
+                                customColors: newColors
+                              });
+                              
+                              // 색상 선택기 요소 제거
+                              document.body.removeChild(input);
+                            });
+                            
+                            // 5. 문서에 추가하고 클릭하여 색상 선택기 열기
+                            document.body.appendChild(input);
+                            
+                            // 짧은 지연 후 클릭 (위치 설정이 적용될 시간을 주기 위함)
+                            setTimeout(() => {
+                              input.click();
+                            }, 50);
+                          }}
+                        >
+                          <DeleteButton 
+                            className="delete-button"
+                            onClick={(e) => {
+                              e.stopPropagation(); // 상위 요소의 클릭 이벤트 방지
+                              const newColors = [...(options.customColors || [])];
+                              newColors.splice(index, 1); // 해당 인덱스의 색상 제거
+                              onOptionsChange({
+                                ...options,
+                                colorTheme: 'custom',
+                                customColors: newColors
+                              });
+                            }}
+                          >
+                            ✕
+                          </DeleteButton>
+                        </ColorBox>
+                      ))}
+                      
+                      {/* 항상 마지막에 + 버튼 추가 */}
+                      <AddColorBox 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if ((options.customColors || []).length < 8) {
+                            const newColors = [...(options.customColors || []), '#3B82F6'];
+                            onOptionsChange({
+                              ...options,
+                              colorTheme: 'custom',
+                              customColors: newColors
+                            });
+                          }
+                        }}
+                      >
+                        +
+                      </AddColorBox>
+                    </ColorBoxGrid>
+                  </CustomColorsContainer>
+                </ColorPopupContainer>
+              </ColorPopupPortal>
+            </RelativeContainer>
+          </ColorThemesContainer>
         </Section>
       </SectionRow>
 

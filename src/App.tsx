@@ -151,8 +151,8 @@ const App: React.FC = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [options, setOptions] = useState<WordCloudOptions>({
     rotationEnabled: true,
-    minRotation: -90,
-    maxRotation: 90,
+    minRotation: -30,
+    maxRotation: 30,
     shape: 'square',
     colorTheme: 'default',
     minWordLength: 2,
@@ -252,7 +252,7 @@ const App: React.FC = () => {
     <>
       <GlobalStyle />
       <Container>
-        <Title>AJOU VIS</Title>
+        <Title>AJOU visualization tester</Title>
         <Layout>
           <ControlPanelContainer>
             <ControlPanel 

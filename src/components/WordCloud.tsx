@@ -203,7 +203,13 @@ const WordCloud: React.FC<WordCloudProps> = ({
   const [placedWords, setPlacedWords] = useState<string[]>([]);  // 배치된 단어들 추적
   const [effectiveMaxWords, setEffectiveMaxWords] = useState(0);
 
-  const getColorScheme = (theme: string) => {
+  const getColorScheme = (theme: string, customColors?: string[]) => {
+    // 커스텀 테마이고 색상이 지정되었으면 해당 색상 사용
+    if (theme === 'custom' && customColors && customColors.length > 0) {
+      return customColors;
+    }
+    
+    // 기존 로직
     switch (theme) {
       case 'warm':
         return ['#ff4d4d', '#ff9933', '#ffcc00', '#ff6666', '#ff8000'];
@@ -231,7 +237,7 @@ const WordCloud: React.FC<WordCloudProps> = ({
     canvas.width = canvasWidth;
     canvas.height = canvasHeight;
 
-    const colors = getColorScheme(options.colorTheme);
+    const colorScheme = getColorScheme(options.colorTheme, options.customColors);
     
     // 단어들을 빈도수로 정렬하여 순위 기반 크기 계산
     const sortedWords = [...words].sort((a, b) => b.value - a.value);
@@ -254,7 +260,7 @@ const WordCloud: React.FC<WordCloudProps> = ({
       fontFamily: 'Impact',
       color: (word, _, fontSize) => {
         setPlacedWords(prev => [...prev, word]);
-        return colors[Math.floor(fontSize % colors.length)];
+        return colorScheme[Math.floor(fontSize % colorScheme.length)];
       },
       rotateRatio: options.minRotation === options.maxRotation ? 0.5 : (options.rotationEnabled ? 1 : 0),
       rotationSteps: options.minRotation === options.maxRotation ? 2 : (options.rotationEnabled ? 32 : 1),
