@@ -260,7 +260,7 @@ const App: React.FC = () => {
       <GlobalStyle />
       <Container>
         <Title onClick={navigateToRoot} style={{ cursor: 'pointer' }}>
-          AJOU visualization tester
+          AJOU visualization practice
         </Title>
         <Layout>
           <ControlPanelContainer>

@@ -4,6 +4,7 @@ import styled, { createGlobalStyle } from 'styled-components';
 import TextInput from './components/TextInput';
 import TextArcVisualizer from './components/TextArcVisualizer';
 import { Word } from './types';
+import { FiSliders } from 'react-icons/fi';
 
 const GlobalStyle = createGlobalStyle`
   * {
@@ -174,12 +175,75 @@ const GenerateButton = styled.button`
   }
 `;
 
+// 컬러 선택기 스타일
+const ColorGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 8px;
+  margin-top: 10px;
+`;
+
+const ColorSwatch = styled.div<{ color: string, isSelected: boolean }>`
+  width: 100%;
+  aspect-ratio: 1;
+  background-color: ${props => props.color};
+  border-radius: 4px;
+  cursor: pointer;
+  border: 2px solid ${props => props.isSelected ? '#000' : 'transparent'};
+  
+  &:hover {
+    transform: scale(1.05);
+  }
+`;
+
+const SettingSection = styled.div`
+  margin-bottom: 20px;
+  
+  h3 {
+    font-size: 1rem;
+    margin-bottom: 10px;
+    color: #333;
+  }
+`;
+
+const RangeInput = styled.input`
+  width: 100%;
+  margin: 10px 0;
+`;
+
+const ValueDisplay = styled.div`
+  display: flex;
+  justify-content: space-between;
+  color: #666;
+  font-size: 0.9rem;
+`;
+
 const TextArc: React.FC = () => {
   const navigate = useNavigate();
   const [text, setText] = useState('');
   const [processedWords, setProcessedWords] = useState<Word[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
   const [processingStatus, setProcessingStatus] = useState('');
+  const [renderKey, setRenderKey] = useState(0);
+  
+  // 설정 관련 상태 추가
+  const [maxSelectedWords, setMaxSelectedWords] = useState<number>(1);
+  const [selectedColors, setSelectedColors] = useState<string[]>([
+    '#1e88e5', // 파란색(기존 색상)
+    '#e53935', // 빨간색
+    '#43a047', // 녹색
+    '#fb8c00', // 주황색
+    '#8e24aa', // 보라색
+    '#00acc1', // 청록색
+    '#ffb300', // 황금색
+    '#6d4c41', // 갈색
+    '#546e7a', // 파란 회색
+    '#ec407a'  // 분홍색
+  ]);
+  
+  // 색상 커스터마이징 상태
+  const [customizingColorIndex, setCustomizingColorIndex] = useState<number | null>(null);
+  const [customColor, setCustomColor] = useState<string>('#1e88e5');
   
   const navigateToRoot = () => {
     navigate('/');
@@ -196,6 +260,7 @@ const TextArc: React.FC = () => {
     }
 
     setIsGenerating(true);
+    setRenderKey(prev => prev + 1);
 
     try {
       // Web Worker 생성
@@ -249,20 +314,66 @@ const TextArc: React.FC = () => {
     }
   };
   
+  // 색상 변경 핸들러
+  const handleColorChange = (index: number, color: string) => {
+    const newColors = [...selectedColors];
+    newColors[index] = color;
+    setSelectedColors(newColors);
+    setCustomizingColorIndex(null);
+  };
+  
   return (
     <>
       <GlobalStyle />
       <Container>
         <Title onClick={navigateToRoot}>
-          AJOU visualization tester
+          AJOU visualization practice
         </Title>
         
         <Layout>
           <ControlPanelContainer>
             <div style={{ padding: '20px', width: '100%' }}>
-              <ComingSoonText style={{ marginBottom: '20px' }}>
-                설정 패널 준비 중...
-              </ComingSoonText>
+              <SettingSection>
+                <h3>선택 가능한 최대 단어 수</h3>
+                <RangeInput
+                  type="range"
+                  min="1"
+                  max="10"
+                  value={maxSelectedWords}
+                  onChange={(e) => setMaxSelectedWords(parseInt(e.target.value))}
+                />
+                <ValueDisplay>
+                  <span>1</span>
+                  <span>{maxSelectedWords}</span>
+                  <span>10</span>
+                </ValueDisplay>
+              </SettingSection>
+              
+              <SettingSection>
+                <h3>선택 단어 색상</h3>
+                <ColorGrid>
+                  {selectedColors.slice(0, maxSelectedWords).map((color, index) => (
+                    <ColorSwatch 
+                      key={index}
+                      color={color}
+                      isSelected={customizingColorIndex === index}
+                      onClick={() => setCustomizingColorIndex(index)}
+                    />
+                  ))}
+                </ColorGrid>
+                
+                {customizingColorIndex !== null && (
+                  <div style={{ marginTop: '15px' }}>
+                    <input
+                      type="color"
+                      value={selectedColors[customizingColorIndex]}
+                      onChange={(e) => handleColorChange(customizingColorIndex, e.target.value)}
+                      style={{ width: '100%' }}
+                    />
+                  </div>
+                )}
+              </SettingSection>
+              
               <GenerateButton 
                 onClick={handleGenerate}
                 disabled={isGenerating || !text.trim()}
@@ -281,10 +392,13 @@ const TextArc: React.FC = () => {
             </InputSection>
             <ArcSection>
               <TextArcVisualizer 
+                key={renderKey}
                 words={processedWords}
                 text={text}
                 isGenerating={isGenerating}
                 processingStatus={processingStatus}
+                maxSelectedWords={maxSelectedWords}
+                selectedColors={selectedColors}
               />
             </ArcSection>
           </MainContent>
