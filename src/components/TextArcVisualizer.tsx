@@ -456,8 +456,8 @@ const TextArcVisualizer: React.FC<TextArcVisualizerProps> = ({
         wordElement.on('click', function(event) {
           event.stopPropagation();
           
-          // 이벤트 처리 중 플래그 설정
-          window.skipEffectRender = true;
+          // 디버깅 도우미 - 현재 선택된 단어 상태 확인
+          console.log('클릭 전 선택된 단어:', selectedWords);
           
           // 단어가 이미 선택되었는지 확인
           const isSelected = selectedWords.some(sw => sw.wordIndex === wordIndex);
@@ -468,21 +468,6 @@ const TextArcVisualizer: React.FC<TextArcVisualizerProps> = ({
           if (isSelected) {
             // 선택 해제 - 해당 단어 제거
             newSelectedWords = selectedWords.filter(w => w.wordIndex !== wordIndex);
-            
-            // 단어 강조 제거 - 기존 투명도로 복원
-            d3.select(this)
-              .style('filter', null)
-              .style('fill', '#000000')
-              .style('fill-opacity', opacityScale(word.value)) // 빈도에 따른 투명도 복원
-              .style('font-weight', 'normal')
-              .classed('word-selected', false);
-            
-            // 연결선 숨김
-            d3.select(`.word-lines-${wordIndex}`).style('opacity', 0);
-            
-            // 문장 내 강조 해제
-            resetSentenceHighlights();
-            
           } else {
             // 선택 추가 로직
             if (selectedWords.length >= maxSelectedWords) {
@@ -504,59 +489,48 @@ const TextArcVisualizer: React.FC<TextArcVisualizerProps> = ({
               
               // 제거되는 단어의 연결선 숨김
               d3.select(`.word-lines-${oldestWordIndex}`).style('opacity', 0);
-              
             } else {
               // 새로운 색상 인덱스로 추가
               newSelectedWords = [...selectedWords, { wordIndex, colorIndex: selectedWords.length }];
             }
+          }
+          
+          // *** 중요: 상태 업데이트 ***
+          setSelectedWords(prevSelected => {
+            console.log('상태 업데이트:', newSelectedWords);
+            return newSelectedWords;
+          });
+          
+          // 시각적 처리는 useState 호출 이후에도 즉시 수행
+          if (isSelected) {
+            // 선택 해제 시 시각적 효과
+            d3.select(this)
+              .style('filter', null)
+              .style('fill', '#000000')
+              .style('fill-opacity', opacityScale(word.value))
+              .style('font-weight', 'normal')
+              .classed('word-selected', false);
             
-            // 새로 선택된 단어의 색상 인덱스
+            d3.select(`.word-lines-${wordIndex}`).style('opacity', 0);
+          } else {
+            // 선택 추가 시 시각적 효과
             const newColorIndex = newSelectedWords.find(w => w.wordIndex === wordIndex)?.colorIndex || 0;
             const color = selectedColors[newColorIndex % selectedColors.length];
             
-            // 단어 시각적 강조 - 즉시 적용 및 완전 불투명 처리
             d3.select(this)
               .classed('word-selected', true)
               .style('filter', 'drop-shadow(0 0 3px rgba(0, 0, 0, 0.3))')
               .style('fill', color)
-              .style('fill-opacity', 1) // 완전 불투명 처리
+              .style('fill-opacity', 1)
               .style('font-weight', 'bold');
             
-            // 연결선 표시 - 즉시 적용
             d3.select(`.word-lines-${wordIndex}`)
               .style('opacity', 1)
               .selectAll('line')
               .attr('stroke', color);
           }
           
-          // 상태 업데이트
-          setSelectedWords(newSelectedWords);
-          
-          // 모든 문장 초기화 
-          resetSentenceHighlights();
-          
-          // 선택된 모든 단어들 문장 강조 적용
-          newSelectedWords.forEach(({ wordIndex: wi, colorIndex: ci }) => {
-            if (wi < words.length) {
-              const color = selectedColors[ci % selectedColors.length];
-              highlightWordInSentences(words[wi].text, color);
-              
-              // 선택된 모든 단어 시각적 강조 확인
-              d3.select(`.word-${wi}`)
-                .classed('word-selected', true)
-                .style('filter', 'drop-shadow(0 0 3px rgba(0, 0, 0, 0.3))')
-                .style('fill', color)
-                .style('font-weight', 'bold');
-              
-              // 연결선 표시 확인
-              d3.select(`.word-lines-${wi}`)
-                .style('opacity', 1)
-                .selectAll('line')
-                .attr('stroke', color);
-            }
-          });
-          
-          // 문장 내 강조 리셋 함수
+          // 문장 내 강조 리셋 함수 정의
           function resetSentenceHighlights() {
             d3.selectAll('.sentence').each(function() {
               const sentenceEl = d3.select(this);
@@ -571,10 +545,36 @@ const TextArcVisualizer: React.FC<TextArcVisualizerProps> = ({
             });
           }
           
-          // 타이머로 플래그 해제
+          // 모든 문장 초기화 
+          resetSentenceHighlights();
+          
+          // 선택된 모든 단어들 문장 강조 적용
+          newSelectedWords.forEach(({ wordIndex: wi, colorIndex: ci }) => {
+            if (wi < words.length) {
+              const color = selectedColors[ci % selectedColors.length];
+              highlightWordInSentences(words[wi].text, color);
+              
+              // 각 선택된 단어의 시각적 강조 확인 
+              d3.select(`.word-${wi}`)
+                .classed('word-selected', true)
+                .style('filter', 'drop-shadow(0 0 3px rgba(0, 0, 0, 0.3))')
+                .style('fill', color)
+                .style('fill-opacity', 1)
+                .style('font-weight', 'bold');
+              
+              d3.select(`.word-lines-${wi}`)
+                .style('opacity', 1)
+                .selectAll('line')
+                .attr('stroke', color);
+            }
+          });
+          
+          // useEffect 무시 플래그 설정
+          window.skipEffectRender = true;
+          
           setTimeout(() => {
             window.skipEffectRender = false;
-          }, 100);
+          }, 200); // 타이머 시간 늘림
         });
         
         // 단어 마우스 오버 핸들러 수정
