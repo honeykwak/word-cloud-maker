@@ -197,26 +197,40 @@ const TextArcVisualizer: React.FC<TextArcVisualizerProps> = ({
     const svgContainer = svgContainerRef.current;
     if (!svgContainer) return;
     
-    // 스크롤 이벤트 핸들러
-    const handleWheelEvent = (e: WheelEvent) => {
+    const handleWheel = (e: WheelEvent) => {
       e.preventDefault();
       
-      const zoomStep = 0.1;
-      if (e.deltaY < 0) {
-        setZoom(prev => Math.min(prev + zoomStep, 5));
-      } else {
-        setZoom(prev => Math.max(prev - zoomStep, 0.1));
-      }
+      // 줌 속도 조절 계수
+      const zoomFactor = 0.1;
+      const delta = e.deltaY > 0 ? -zoomFactor : zoomFactor;
+      
+      // 새 줌 레벨 계산 (최소 0.1, 최대 5)
+      const newZoom = Math.max(0.1, Math.min(5, zoom + delta));
+      
+      // 마우스 위치를 기준으로 줌 조정
+      const containerRect = svgContainer.getBoundingClientRect();
+      const mouseX = e.clientX - containerRect.left;
+      const mouseY = e.clientY - containerRect.top;
+      
+      // 줌 중심점 계산
+      const zoomRatio = newZoom / zoom;
+      const newTranslateX = mouseX - (mouseX - translateX) * zoomRatio;
+      const newTranslateY = mouseY - (mouseY - translateY) * zoomRatio;
+      
+      // 상태 업데이트
+      setZoom(newZoom);
+      setTranslateX(newTranslateX);
+      setTranslateY(newTranslateY);
     };
     
-    // passive: false 옵션으로 이벤트 리스너 추가
-    svgContainer.addEventListener('wheel', handleWheelEvent, { passive: false });
+    // 휠 이벤트 리스너 추가
+    svgContainer.addEventListener('wheel', handleWheel, { passive: false });
     
-    // 컴포넌트 언마운트 시 이벤트 리스너 제거
+    // 클린업 함수
     return () => {
-      svgContainer.removeEventListener('wheel', handleWheelEvent);
+      svgContainer.removeEventListener('wheel', handleWheel);
     };
-  }, []);
+  }, [zoom, translateX, translateY]);
 
   // SVG 초기화 함수 분리
   const clearSvg = () => {
@@ -496,12 +510,14 @@ const TextArcVisualizer: React.FC<TextArcVisualizerProps> = ({
           }
           
           // *** 중요: 상태 업데이트 ***
+          // 상태 업데이트를 버퍼링하지 않고 즉시 반영하기 위해 함수 형태 사용
           setSelectedWords(prevSelected => {
             console.log('상태 업데이트:', newSelectedWords);
             return newSelectedWords;
           });
           
           // 시각적 처리는 useState 호출 이후에도 즉시 수행
+          // 이는 React 상태 업데이트와 별개로 D3 DOM 조작이 즉시 반영되도록 함
           if (isSelected) {
             // 선택 해제 시 시각적 효과
             d3.select(this)
@@ -530,25 +546,11 @@ const TextArcVisualizer: React.FC<TextArcVisualizerProps> = ({
               .attr('stroke', color);
           }
           
-          // 문장 내 강조 리셋 함수 정의
-          function resetSentenceHighlights() {
-            d3.selectAll('.sentence').each(function() {
-              const sentenceEl = d3.select(this);
-              const sentenceData = sentenceEl.datum() as any;
-              if (!sentenceData) return;
-              
-              sentenceEl.text(sentenceData.text.length > 30 
-                ? sentenceData.text.substring(0, 30) + '...' 
-                : sentenceData.text)
-                .attr('fill', '#94a3b8')
-                .attr('font-weight', 'normal');
-            });
-          }
-          
           // 모든 문장 초기화 
           resetSentenceHighlights();
           
           // 선택된 모든 단어들 문장 강조 적용
+          // 이 부분이 핵심: newSelectedWords를 사용하여 즉시 처리
           newSelectedWords.forEach(({ wordIndex: wi, colorIndex: ci }) => {
             if (wi < words.length) {
               const color = selectedColors[ci % selectedColors.length];
