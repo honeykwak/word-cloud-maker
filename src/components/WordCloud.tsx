@@ -208,10 +208,12 @@ const WordCloud: React.FC<WordCloudProps> = ({
     excludedWords
   } = useVisualization();
 
-  // 클라이언트 측에서 불용어 필터링 (UI 표시용)
+  // 클라이언트 측에서 최소 단어 길이 및 불용어 필터링
   const filteredWords = useMemo(() => {
-    return processedWords.filter(word => !excludedWords.includes(word.text));
-  }, [processedWords, excludedWords]);
+    return processedWords
+      .filter(word => !excludedWords.includes(word.text))
+      .filter(word => word.text.length >= options.minWordLength); // 최소 단어 길이 필터링
+  }, [processedWords, excludedWords, options.minWordLength]);
 
   const getColorScheme = (theme: string, customColors?: string[]) => {
     // 커스텀 테마이고 색상이 지정되었으면 해당 색상 사용

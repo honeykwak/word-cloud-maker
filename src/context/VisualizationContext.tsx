@@ -122,13 +122,13 @@ export const VisualizationProvider: React.FC<{children: ReactNode}> = ({ childre
         worker.terminate();
       };
 
-      // 작업 시작
+      // 항상 최소 단어 길이를 1로 설정하여 모든 단어 처리
       worker.postMessage({
         text,
         language,
-        minWordLength: 2,
+        minWordLength: 1, // 항상 1로 설정
         excludedWords,
-        maxWords: 100
+        maxWords: 500 // 더 많은 단어를 처리
       });
 
     } catch (error) {

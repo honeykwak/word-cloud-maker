@@ -240,6 +240,8 @@ const WordCloud: React.FC = () => {
     setOptions(pendingOptions);
     setHasOptionChanges(false);
     setRenderKey(prev => prev + 1);
+    
+    // 최소 단어 길이와 관계없이 항상 동일하게 processText 호출
     processText();
   };
 
