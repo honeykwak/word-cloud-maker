@@ -12,15 +12,19 @@ interface TextArcVisualizerProps {
   processingStatus?: string;
   maxSelectedWords?: number; // 선택 가능한 최대 단어 수 (기본값: 1)
   selectedColors?: string[]; // 선택된 단어에 적용할 색상 배열
+  backgroundColor: string | null;
+  defaultTextColor: string; // null 허용 안함
+  maxSentenceLength?: number; // 기본값: 30
 }
 
-const Container = styled.div`
+const Container = styled.div<{ $backgroundColor: string | null }>`
   width: 100%;
   height: 100%;
   position: relative;
-  background: white;
   border-radius: 8px;
   overflow: hidden;
+  background-color: ${props => props.$backgroundColor || 'white'};
+  transition: background-color 0.3s;
 `;
 
 const SVGContainer = styled.div`
@@ -129,7 +133,10 @@ const TextArcVisualizer: React.FC<TextArcVisualizerProps> = ({
     '#6d4c41', // 갈색
     '#546e7a', // 파란 회색
     '#ec407a'  // 분홍색
-  ]
+  ],
+  backgroundColor,
+  defaultTextColor,
+  maxSentenceLength = 30,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement | null>(null);
@@ -352,9 +359,10 @@ const TextArcVisualizer: React.FC<TextArcVisualizerProps> = ({
         .attr('text-anchor', textAnchor)
         .attr('dominant-baseline', 'middle')
         .attr('font-size', '6px')
-        .attr('fill', '#94a3b8')
+        .attr('fill', defaultTextColor)
         .attr('class', `sentence sentence-${i}`)
-        .text(sentence.length > 30 ? sentence.substring(0, 30) + '...' : sentence)
+        .text(sentence.length > maxSentenceLength ? 
+          sentence.substring(0, maxSentenceLength) + '...' : sentence)
         .datum(sentenceData); // 문장 데이터를 요소에 바인딩
         
       return { element: sentenceEl, data: sentenceData };
@@ -460,11 +468,12 @@ const TextArcVisualizer: React.FC<TextArcVisualizerProps> = ({
           .attr('text-anchor', 'middle')
           .attr('dominant-baseline', 'middle')
           .attr('font-size', `${fixedFontSize}px`)
-          .attr('fill', '#000000')
+          .attr('fill', defaultTextColor)
           .attr('fill-opacity', opacityScale(word.value))
           .attr('class', `word word-${wordIndex}`)
           .attr('cursor', 'pointer')
-          .text(word.text);
+          .text(word.text.length > maxSentenceLength ? 
+            word.text.substring(0, maxSentenceLength) + '...' : word.text);
         
         // 단어 클릭 핸들러 수정
         wordElement.on('click', function(event) {
@@ -646,7 +655,7 @@ const TextArcVisualizer: React.FC<TextArcVisualizerProps> = ({
               // 단어 스타일 복원
               d3.select(this)
                 .style('filter', null)
-                .style('fill', '#000000')
+                .style('fill', defaultTextColor)
                 .style('fill-opacity', opacityScale(word.value))
                 .style('font-weight', 'normal');
                 
@@ -657,10 +666,10 @@ const TextArcVisualizer: React.FC<TextArcVisualizerProps> = ({
                 if (!sentenceData) return;
                 
                 // 문장 텍스트 복원
-                sentenceEl.text(sentenceData.text.length > 30 
-                  ? sentenceData.text.substring(0, 30) + '...' 
+                sentenceEl.text(sentenceData.text.length > maxSentenceLength 
+                  ? sentenceData.text.substring(0, maxSentenceLength) + '...' 
                   : sentenceData.text)
-                  .attr('fill', '#94a3b8')
+                  .attr('fill', defaultTextColor)
                   .attr('font-weight', 'normal');
               });
               
@@ -679,7 +688,7 @@ const TextArcVisualizer: React.FC<TextArcVisualizerProps> = ({
       if (event.target === this) {
         d3.selectAll('.word').classed('word-selected', false);
         linesGroup.selectAll('.word-lines').style('opacity', 0);
-        d3.selectAll('.sentence').style('fill', '#94a3b8').style('font-weight', 'normal');
+        d3.selectAll('.sentence').style('fill', defaultTextColor).style('font-weight', 'normal');
         
         // 모든 선택 해제
         setSelectedWords([]);
@@ -688,7 +697,7 @@ const TextArcVisualizer: React.FC<TextArcVisualizerProps> = ({
     
     // 초기 줌/이동 상태 적용
     updateTransform();
-  }, [words, text, selectedWords]);
+  }, [words, text, selectedWords, backgroundColor, defaultTextColor, maxSentenceLength]);
   
   // 줌/이동 상태가 변경될 때마다 SVG 변환 업데이트
   useEffect(() => {
@@ -730,8 +739,8 @@ const TextArcVisualizer: React.FC<TextArcVisualizerProps> = ({
         // 기존 문장 텍스트 제거하고 SVG 텍스트 스팬으로 교체
         sentenceEl.text('');
         
-        const displayText = sentenceData.text.length > 30 
-          ? sentenceData.text.substring(0, 30) + '...' 
+        const displayText = sentenceData.text.length > maxSentenceLength 
+          ? sentenceData.text.substring(0, maxSentenceLength) + '...' 
           : sentenceData.text;
           
         // 단어 위치에 따라 텍스트 분할 및 강조
@@ -744,7 +753,7 @@ const TextArcVisualizer: React.FC<TextArcVisualizerProps> = ({
           if (match.index > lastIndex) {
             sentenceEl.append('tspan')
               .text(displayText.substring(lastIndex, match.index))
-              .attr('fill', '#94a3b8');
+              .attr('fill', defaultTextColor);
           }
           
           // 강조할 단어
@@ -760,7 +769,7 @@ const TextArcVisualizer: React.FC<TextArcVisualizerProps> = ({
         if (lastIndex < displayText.length) {
           sentenceEl.append('tspan')
             .text(displayText.substring(lastIndex))
-            .attr('fill', '#94a3b8');
+            .attr('fill', defaultTextColor);
         }
       }
     });
@@ -804,10 +813,10 @@ const TextArcVisualizer: React.FC<TextArcVisualizerProps> = ({
         if (!sentenceData) return;
         
         // 문장 텍스트 초기화
-        sentenceEl.text(sentenceData.text.length > 30 
-          ? sentenceData.text.substring(0, 30) + '...' 
+        sentenceEl.text(sentenceData.text.length > maxSentenceLength 
+          ? sentenceData.text.substring(0, maxSentenceLength) + '...' 
           : sentenceData.text)
-          .attr('fill', '#94a3b8')
+          .attr('fill', defaultTextColor)
           .attr('font-weight', 'normal');
       });
       
@@ -818,7 +827,7 @@ const TextArcVisualizer: React.FC<TextArcVisualizerProps> = ({
         highlightWordInSentences(word.text, color);
       });
     }
-  }, [maxSelectedWords, words]);
+  }, [maxSelectedWords, words, maxSentenceLength]);
   
   // 초기 렌더링
   useEffect(() => {
@@ -849,10 +858,10 @@ const TextArcVisualizer: React.FC<TextArcVisualizerProps> = ({
       const sentenceData = sentenceEl.datum() as any;
       if (!sentenceData) return;
       
-      sentenceEl.text(sentenceData.text.length > 30 
-        ? sentenceData.text.substring(0, 30) + '...' 
+      sentenceEl.text(sentenceData.text.length > maxSentenceLength 
+        ? sentenceData.text.substring(0, maxSentenceLength) + '...' 
         : sentenceData.text)
-        .attr('fill', '#94a3b8')
+        .attr('fill', defaultTextColor)
         .attr('font-weight', 'normal');
     });
     
@@ -879,11 +888,11 @@ const TextArcVisualizer: React.FC<TextArcVisualizerProps> = ({
         highlightWordInSentences(words[wordIndex].text, color);
       }
     });
-  }, [selectedWords, words, selectedColors]);
+  }, [selectedWords, words, selectedColors, maxSentenceLength]);
   
   if (words.length === 0 || !text) {
     return (
-      <Container>
+      <Container ref={containerRef} $backgroundColor={backgroundColor}>
         <NoDataMessage>
           텍스트와 단어가 로드되면 TextArc가 여기에 표시됩니다.
         </NoDataMessage>
@@ -892,7 +901,7 @@ const TextArcVisualizer: React.FC<TextArcVisualizerProps> = ({
   }
   
   return (
-    <Container ref={containerRef}>
+    <Container ref={containerRef} $backgroundColor={backgroundColor}>
       {isGenerating && (
         <LoadingOverlay>
           <div className="spinner" />

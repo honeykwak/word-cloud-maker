@@ -1,6 +1,7 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useState, useEffect } from 'react';
 import { useDropzone } from 'react-dropzone';
 import styled from 'styled-components';
+import { useVisualization } from '../context/VisualizationContext';
 
 interface TextInputProps {
   onTextChange: (text: string) => void;
@@ -153,13 +154,32 @@ const TextInput: React.FC<TextInputProps> = ({
   onTextChange, 
   isGenerating
 }) => {
-  const [currentText, setCurrentText] = useState('');
-  const [showMergeButtons, setShowMergeButtons] = useState(false);
+  // 전역 상태에서 텍스트 가져오기
+  const { text: globalText } = useVisualization();
+  
+  // 로컬 상태는 전역 상태에서 초기화
+  const [currentText, setCurrentText] = useState(globalText);
   const [fileContent, setFileContent] = useState('');
+  const [showMergeButtons, setShowMergeButtons] = useState(false);
+  const [stats, setStats] = useState({
+    withSpaces: 0,
+    withoutSpaces: 0,
+    totalWords: 0,
+    uniqueWords: 0,
+    byteSize: 0,
+    byteNoSpaces: 0
+  });
 
-  const handleTextChange = (text: string) => {
-    setCurrentText(text);
-    onTextChange(text);
+  // 전역 상태가 변경되면 로컬 상태 업데이트
+  useEffect(() => {
+    setCurrentText(globalText);
+  }, [globalText]);
+
+  // 로컬 텍스트 변경 시 전역 상태로 동기화
+  const handleTextChange = (newText: string) => {
+    setCurrentText(newText);
+    onTextChange(newText);
+    calculateStats(newText);
   };
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
@@ -213,17 +233,23 @@ const TextInput: React.FC<TextInputProps> = ({
     const totalWords = words.length > 0 && text.trim() !== '' ? words.length : 0;
     const uniqueWords = new Set(words.map(w => w.toLowerCase())).size;
 
-    return {
+    setStats({
       withSpaces,
       withoutSpaces,
       byteSize,
       byteNoSpaces,
       totalWords,
       uniqueWords
-    };
+    });
   };
 
-  const stats = calculateStats(currentText);
+  // 컴포넌트가 마운트되거나 외부에서 text prop이 변경될 때 통계 재계산
+  useEffect(() => {
+    if (globalText) {
+      setCurrentText(globalText);
+      calculateStats(globalText);
+    }
+  }, [globalText]);
 
   return (
     <Container>

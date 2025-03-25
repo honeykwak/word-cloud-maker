@@ -770,10 +770,35 @@ const PopupActions = styled.div`
   margin-top: 12px;
 `;
 
+// 빈 상태를 위한 스타일 추가
+const EmptyState = styled.div`
+  padding: 15px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 4px;
+  color: #64748b;
+  font-size: 0.9rem;
+  text-align: center;
+  margin-top: 10px;
+`;
+
+// TopWordsSelector를 감싸는 컨테이너 (기존에 있으면 생략)
+const TopWordsContainer = styled.div`
+  margin-top: 15px;
+`;
+
+// SubTitle 추가 (기존에 없다면)
+const SubTitle = styled.h4`
+  font-size: 0.9rem;
+  margin-bottom: 5px;
+  color: #333;
+  font-weight: normal;
+`;
+
 const ControlPanel: React.FC<ControlPanelProps> = ({ 
   options, 
   onOptionsChange,
-  totalUniqueWords,  // prop 추가 필요
+  totalUniqueWords,
   words,
   onGenerateCloud
 }) => {
@@ -1271,26 +1296,36 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
           </InputContainer>
         </Title>
 
-        <TopWordsSelector
-          words={words}
-          excludedWords={options.excludedWords}
-          onToggleWord={handleToggleWord}
-        />
-        
-        <div style={{ width: '100%', marginTop: '15px' }}>
-          <IconButton 
-            onClick={onGenerateCloud} 
-            $primary
-            style={{ 
-              width: '100%', 
-              height: '36px',
-              flex: 'none'
-            }}
-          >
-            워드 클라우드 생성
-          </IconButton>
-        </div>
+        <TopWordsContainer>
+          <SubTitle>상위 빈도 단어 (클릭으로 불용어 지정/해제)</SubTitle>
+          {words.length > 0 ? (
+            <TopWordsSelector
+              words={words.slice(0, 20)}
+              excludedWords={options.excludedWords}
+              onToggleWord={handleToggleWord}
+            />
+          ) : (
+            <EmptyState>
+              텍스트를 입력하고 생성하면 여기에 상위 빈도 단어가 표시됩니다.
+            </EmptyState>
+          )}
+        </TopWordsContainer>
       </ExcludedWordsSection>
+      
+      {/* 불용어 섹션 밖으로 생성 버튼 이동 */}
+      <div style={{ width: '100%', marginTop: '15px' }}>
+        <IconButton 
+          onClick={onGenerateCloud} 
+          $primary
+          style={{ 
+            width: '100%', 
+            height: '36px',
+            flex: 'none'
+          }}
+        >
+          워드 클라우드 생성
+        </IconButton>
+      </div>
     </Container>
   );
 };

@@ -58,7 +58,6 @@ const TopWordsSelector: React.FC<TopWordsSelectorProps> = ({ words, excludedWord
 
   return (
     <Container>
-      <Title>상위 빈도 단어 (클릭으로 불용어 지정/해제)</Title>
       <WordList>
         {topWords.map((word) => (
           <WordItem

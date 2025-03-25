@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styled, { createGlobalStyle } from 'styled-components';
 import TextInput from './components/TextInput';
-import TextArcVisualizer from './components/TextArcVisualizer';
-import TextArcControlPanel from './components/TextArcControlPanel';
+import WordCloudComponent from './components/WordCloud';
+import ControlPanel from './components/ControlPanel';
 import { useVisualization } from './context/VisualizationContext';
+import { WordCloudOptions } from './types';
 
 const GlobalStyle = createGlobalStyle`
   * {
@@ -56,19 +57,6 @@ const Header = styled.div`
   }
 `;
 
-const Title = styled.h1`
-  text-align: left;
-  color: #2c3e50;
-  margin-bottom: 20px;
-  font-size: 2.5rem;
-  cursor: pointer;
-  
-  @media (max-width: 768px) {
-    font-size: 2rem;
-    margin-bottom: 15px;
-  }
-`;
-
 const NavButtons = styled.div`
   display: flex;
   margin-left: 20px;
@@ -92,6 +80,19 @@ const NavButton = styled.button<{ $active?: boolean }>`
   
   &:hover {
     background-color: ${props => props.$active ? '#1976D2' : '#f1f5f9'};
+  }
+`;
+
+const Title = styled.h1`
+  text-align: left;
+  color: #2c3e50;
+  margin-bottom: 20px;
+  font-size: 2.5rem;
+  cursor: pointer;
+  
+  @media (max-width: 768px) {
+    font-size: 2rem;
+    margin-bottom: 15px;
   }
 `;
 
@@ -145,13 +146,10 @@ const InputSection = styled.div`
   }
 `;
 
-const ArcSection = styled.div`
+const CloudSection = styled.div`
   flex: 2;
   min-height: 0;
   position: relative;
-  display: flex;
-  justify-content: center;
-  align-items: center;
   
   @media (max-width: 1024px) {
     flex: 1 1 auto;
@@ -180,10 +178,7 @@ const Copyright = styled.div`
   text-align: center;
 `;
 
-// 색상 테마 타입 정의
-type ColorTheme = 'blue' | 'rainbow' | 'gray' | 'warm' | 'cold' | 'custom';
-
-const TextArc: React.FC = () => {
+const WordCloud: React.FC = () => {
   const navigate = useNavigate();
   const { 
     text, setText, 
@@ -195,84 +190,59 @@ const TextArc: React.FC = () => {
   } = useVisualization();
   
   const [renderKey, setRenderKey] = useState(0);
+  const [options, setOptions] = useState<WordCloudOptions>({
+    rotationEnabled: true,
+    minRotation: -30,
+    maxRotation: 30,
+    shape: 'square',
+    colorTheme: 'default',
+    minWordLength: 2,
+    maxWords: 100,
+    excludedWords: excludedWords,
+    language: 'en'
+  });
   
-  // TextArc 전용 상태
-  const [maxSelectedWords, setMaxSelectedWords] = useState<number>(1);
-  const [selectedColors, setSelectedColors] = useState<string[]>([
-    '#1e88e5' // 하나의 색상만 유지
-  ]);
-  const [colorTheme, setColorTheme] = useState<ColorTheme>('blue');
-  
-  // 색상 상태 수정 - 텍스트 색상은 항상 값이 있어야 함
-  const [backgroundColor, setBackgroundColor] = useState<string | null>(null);
-  const [defaultTextColor, setDefaultTextColor] = useState<string>('#333333');
-  
-  // 새로운 상태 추가
-  const [maxSentenceLength, setMaxSentenceLength] = useState<number>(30); // 기본값 30
+  // App.tsx에서 가져온 상태와 핸들러들
+  const [pendingOptions, setPendingOptions] = useState<WordCloudOptions>(options);
+  const [hasOptionChanges, setHasOptionChanges] = useState(false);
+  const [uniqueWordCount, setUniqueWordCount] = useState(0);
+
+  // excludedWords가 변경되면 options와 pendingOptions도 업데이트
+  useEffect(() => {
+    setOptions(prev => ({ ...prev, excludedWords }));
+    setPendingOptions(prev => ({ ...prev, excludedWords }));
+  }, [excludedWords]);
   
   const navigateToRoot = () => {
     navigate('/');
   };
-  
+
   const handleTextChange = (newText: string) => {
     setText(newText);
+    
+    // 고유 단어 수 계산
+    const words = newText.trim().split(/\s+/);
+    const uniqueWords = new Set(words.map(w => w.toLowerCase()));
+    setUniqueWordCount(uniqueWords.size);
   };
-  
+
+  const handleOptionsChange = (newOptions: WordCloudOptions) => {
+    setPendingOptions(newOptions);
+    setHasOptionChanges(true);
+    
+    // 불용어 변경 시 전역 상태도 업데이트
+    if (newOptions.excludedWords !== options.excludedWords) {
+      setExcludedWords(newOptions.excludedWords);
+    }
+  };
+
   const handleGenerate = () => {
+    setOptions(pendingOptions);
+    setHasOptionChanges(false);
     setRenderKey(prev => prev + 1);
     processText();
   };
-  
-  // 색상 변경 핸들러 - 개선
-  const handleColorChange = (index: number, color: string) => {
-    // 빈 문자열이 전달되면 해당 색상을 삭제
-    if (color === '') {
-      // 해당 인덱스를 제외한 새 배열 생성
-      const newColors = selectedColors.filter((_, i) => i !== index);
-      setSelectedColors(newColors);
-      return;
-    }
 
-    // 일반적인 색상 변경 로직
-    const newColors = [...selectedColors];
-    
-    // 새 index가 현재 배열 길이보다 크면 배열 확장
-    while (newColors.length <= index) {
-      newColors.push('#1e88e5');
-    }
-    
-    newColors[index] = color;
-    setSelectedColors(newColors);
-  };
-  
-  // 테마 변경 핸들러
-  const handleColorThemeChange = (theme: ColorTheme) => {
-    setColorTheme(theme);
-  };
-
-  // TextArc.tsx에서 배열 전체를 설정하는 함수 추가
-  const setAllColors = (colors: string[]) => {
-    setSelectedColors(colors);
-    setMaxSelectedWords(colors.length);
-  };
-  
-  // 핸들러 수정
-  const handleBackgroundColorChange = (color: string | null) => {
-    setBackgroundColor(color);
-  };
-
-  const handleDefaultTextColorChange = (color: string) => {
-    // null 값을 허용하지 않음
-    if (color) {
-      setDefaultTextColor(color);
-    }
-  };
-  
-  // 새로운 핸들러 추가
-  const handleMaxSentenceLengthChange = (length: number) => {
-    setMaxSentenceLength(length);
-  };
-  
   return (
     <>
       <GlobalStyle />
@@ -283,10 +253,10 @@ const TextArc: React.FC = () => {
           </Title>
           
           <NavButtons>
-            <NavButton onClick={() => navigate('/wordcloud')}>
+            <NavButton $active={true} onClick={() => navigate('/wordcloud')}>
               워드 클라우드
             </NavButton>
-            <NavButton $active={true} onClick={() => navigate('/textarc')}>
+            <NavButton onClick={() => navigate('/textarc')}>
               텍스트 아크
             </NavButton>
           </NavButtons>
@@ -294,25 +264,12 @@ const TextArc: React.FC = () => {
         
         <Layout>
           <ControlPanelContainer>
-            <TextArcControlPanel
-              maxSelectedWords={maxSelectedWords}
-              onMaxSelectedWordsChange={setMaxSelectedWords}
-              selectedColors={selectedColors}
-              onColorChange={handleColorChange}
-              excludedWords={excludedWords}
-              onExcludedWordsChange={setExcludedWords}
-              processedWords={processedWords}
-              onGenerateClick={handleGenerate}
-              isGenerating={isGenerating}
-              colorTheme={colorTheme}
-              onColorThemeChange={handleColorThemeChange}
-              onSetAllColors={setAllColors}
-              backgroundColor={backgroundColor}
-              onBackgroundColorChange={handleBackgroundColorChange}
-              defaultTextColor={defaultTextColor}
-              onDefaultTextColorChange={handleDefaultTextColorChange}
-              maxSentenceLength={maxSentenceLength}
-              onMaxSentenceLengthChange={handleMaxSentenceLengthChange}
+            <ControlPanel
+              options={pendingOptions}
+              onOptionsChange={handleOptionsChange}
+              totalUniqueWords={uniqueWordCount}
+              words={processedWords}
+              onGenerateCloud={handleGenerate}
             />
           </ControlPanelContainer>
           
@@ -323,20 +280,17 @@ const TextArc: React.FC = () => {
                 isGenerating={isGenerating}
               />
             </InputSection>
-            <ArcSection>
-              <TextArcVisualizer 
+            <CloudSection>
+              <WordCloudComponent
                 key={renderKey}
                 words={processedWords}
-                text={text}
+                options={options}
                 isGenerating={isGenerating}
                 processingStatus={processingStatus}
-                maxSelectedWords={maxSelectedWords}
-                selectedColors={selectedColors}
-                backgroundColor={backgroundColor}
-                defaultTextColor={defaultTextColor}
-                maxSentenceLength={maxSentenceLength}
+                renderKey={renderKey}
+                onRegenerate={handleGenerate}
               />
-            </ArcSection>
+            </CloudSection>
           </MainContent>
         </Layout>
         
@@ -348,4 +302,4 @@ const TextArc: React.FC = () => {
   );
 };
 
-export default TextArc; 
+export default WordCloud; 
