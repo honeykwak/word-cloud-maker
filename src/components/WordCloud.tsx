@@ -236,7 +236,7 @@ const WordCloud: React.FC<WordCloudProps> = ({
     if (!canvasRef.current || words.length === 0) return;
 
     setPlacedWords([]);
-    setEffectiveMaxWords(words.length);  // 실제 가용 단어 수 설정
+    setEffectiveMaxWords(Math.min(options.maxWords, filteredWords.length));
 
     const canvas = canvasRef.current;
     const ctx = canvas.getContext('2d');
@@ -391,7 +391,7 @@ const WordCloud: React.FC<WordCloudProps> = ({
   // 진행률 계산 수정
   const progress = {
     current: placedWords.length,
-    total: effectiveMaxWords  // options.maxWords 대신 effectiveMaxWords 사용
+    total: effectiveMaxWords  // 이미 올바르게 계산된 값 사용
   };
 
   // 중앙 정렬 함수 추가
