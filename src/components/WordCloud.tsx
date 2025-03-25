@@ -9,12 +9,13 @@
  * This component implements an interactive word cloud visualization
  * with features like zooming, panning, and custom shapes.
  */
-import React, { useRef, useEffect, useState, useCallback } from 'react';
+import React, { useRef, useEffect, useState, useCallback, useMemo } from 'react';
 import WordCloud2 from 'wordcloud';
 import styled from 'styled-components';
 import { WordCloudOptions, Word } from '../types';
 import { FiDownload, FiRefreshCw, FiZoomIn, FiZoomOut, FiMaximize } from 'react-icons/fi';
 import { ShapeFunction, createShapeFromPNG } from '../utils/shapeUtils';
+import { useVisualization } from '../context/VisualizationContext';
 
 interface WordCloudProps {
   words: Word[];
@@ -202,6 +203,15 @@ const WordCloud: React.FC<WordCloudProps> = ({
   const [dragStart, setDragStart] = useState<[number, number]>([0, 0]);
   const [placedWords, setPlacedWords] = useState<string[]>([]);  // 배치된 단어들 추적
   const [effectiveMaxWords, setEffectiveMaxWords] = useState(0);
+  const { 
+    processedWords, 
+    excludedWords
+  } = useVisualization();
+
+  // 클라이언트 측에서 불용어 필터링 (UI 표시용)
+  const filteredWords = useMemo(() => {
+    return processedWords.filter(word => !excludedWords.includes(word.text));
+  }, [processedWords, excludedWords]);
 
   const getColorScheme = (theme: string, customColors?: string[]) => {
     // 커스텀 테마이고 색상이 지정되었으면 해당 색상 사용
@@ -240,7 +250,7 @@ const WordCloud: React.FC<WordCloudProps> = ({
     const colorScheme = getColorScheme(options.colorTheme, options.customColors);
     
     // 단어들을 빈도수로 정렬하여 순위 기반 크기 계산
-    const sortedWords = [...words].sort((a, b) => b.value - a.value);
+    const sortedWords = [...filteredWords].sort((a, b) => b.value - a.value);
     const list = sortedWords
       .slice(0, options.maxWords)  // maxWords 만큼 정확히 자르기
       .map((word, index) => {
@@ -305,7 +315,7 @@ const WordCloud: React.FC<WordCloudProps> = ({
         }, 1000);
       }
     });
-  }, [words, options, renderKey]);
+  }, [filteredWords, options, renderKey]);
 
   // 초기 스케일 계산 함수 수정
   const calculateInitialScale = useCallback((items: any[] = []) => {

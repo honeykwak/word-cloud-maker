@@ -34,6 +34,40 @@ export const useVisualization = () => {
   return context;
 };
 
+export interface VisualizationState {
+  text: string;
+  processedWords: Word[];
+  excludedWords: string[];
+  language: Language;
+  isGenerating: boolean;
+  processingStatus: string;
+  textStats: {
+    withSpaces: number;
+    withoutSpaces: number;
+    byteSize: number;
+    byteNoSpaces: number;
+    totalWords: number;
+    uniqueWords: number;
+  };
+}
+
+const initialState: VisualizationState = {
+  text: '',
+  processedWords: [],
+  excludedWords: [],
+  language: 'en',
+  isGenerating: false,
+  processingStatus: '',
+  textStats: {
+    withSpaces: 0,
+    withoutSpaces: 0,
+    byteSize: 0,
+    byteNoSpaces: 0,
+    totalWords: 0,
+    uniqueWords: 0
+  }
+};
+
 export const VisualizationProvider: React.FC<{children: ReactNode}> = ({ children }) => {
   // 공유 상태
   const [text, setText] = useState('');

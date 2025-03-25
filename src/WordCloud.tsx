@@ -209,7 +209,7 @@ const WordCloud: React.FC = () => {
 
   // excludedWords가 변경되면 options와 pendingOptions도 업데이트
   useEffect(() => {
-    setOptions(prev => ({ ...prev, excludedWords }));
+    // 불용어 변경 시 pendingOptions만 업데이트
     setPendingOptions(prev => ({ ...prev, excludedWords }));
   }, [excludedWords]);
   
