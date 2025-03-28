@@ -360,16 +360,39 @@ const WordCloud: React.FC<WordCloudProps> = ({
     const container = containerRef.current;
     if (!container) return;
 
-    const handleWheel = (e: WheelEvent) => {
+    const handleWheel = (e: React.WheelEvent) => {
       e.preventDefault();
-      const delta = e.deltaY * -0.001;
-      const newZoom = Math.min(Math.max(0.1, zoom + delta), 5);
+      
+      // 줌 변화량 계산
+      const delta = e.deltaY * -0.01;
+      const newZoom = Math.max(0.5, Math.min(3, zoom + delta));
+      
+      // SVG 요소의 경계 상자(bounding box) 가져오기
+      const svg = svgRef.current;
+      if (!svg) return;
+      
+      const svgRect = svg.getBoundingClientRect();
+      
+      // 마우스 위치를 SVG 내부 좌표로 변환
+      const mouseX = e.clientX - svgRect.left;
+      const mouseY = e.clientY - svgRect.top;
+      
+      // 줌 전 마우스 위치의 SVG 좌표 계산
+      const oldX = (mouseX - origin[0]) / zoom;
+      const oldY = (mouseY - origin[1]) / zoom;
+      
+      // 줌 후 조정된 위치 계산
+      const newX = origin[0] - (oldX * newZoom - mouseX);
+      const newY = origin[1] - (oldY * newZoom - mouseY);
+      
+      // 상태 업데이트
       setZoom(newZoom);
+      setOrigin([newX, newY]);
     };
 
     container.addEventListener('wheel', handleWheel, { passive: false });
     return () => container.removeEventListener('wheel', handleWheel);
-  }, [zoom]);
+  }, [zoom, origin]);
 
   // 마우스 이벤트 핸들러 수정
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
@@ -420,6 +443,51 @@ const WordCloud: React.FC<WordCloudProps> = ({
     generateWordCloud();
   }, [words, options, renderKey]);
 
+  const svgRef = useRef<SVGSVGElement>(null);
+
+  const handleZoom = useCallback((newZoom: number, clientX?: number, clientY?: number) => {
+    if (!svgRef.current) return;
+    
+    // 현재 SVG 요소의 바운딩 박스
+    const svgBounds = svgRef.current.getBoundingClientRect();
+    
+    // 줌 중심점 (기본값: 화면 중앙)
+    const centerX = clientX ?? (svgBounds.left + svgBounds.width / 2);
+    const centerY = clientY ?? (svgBounds.top + svgBounds.height / 2);
+    
+    // SVG 내부 좌표로 변환
+    const svgPoint = svgRef.current.createSVGPoint();
+    svgPoint.x = centerX;
+    svgPoint.y = centerY;
+    
+    // 현재 SVG 변환 행렬 고려
+    const transformMatrix = svgRef.current.getScreenCTM();
+    if (!transformMatrix) return;
+    
+    const transformedPoint = svgPoint.matrixTransform(transformMatrix.inverse());
+    
+    // 줌 비율 변화
+    const zoomDelta = newZoom / zoom;
+    
+    // 새 위치 계산 (줌 중심점을 유지하기 위해)
+    const newPosition = {
+      x: origin[0] - ((transformedPoint.x - origin[0]) * (zoomDelta - 1)),
+      y: origin[1] - ((transformedPoint.y - origin[1]) * (zoomDelta - 1))
+    };
+    
+    setOrigin(newPosition);
+    setZoom(newZoom);
+  }, [zoom, origin]);
+
+  // 버튼 줌 핸들러 수정
+  const handleZoomIn = () => {
+    handleZoom(Math.min(zoom + 0.1, 3));
+  };
+
+  const handleZoomOut = () => {
+    handleZoom(Math.max(zoom - 0.1, 0.5));
+  };
+
   return (
     <Container>
       <CloudContainer 
@@ -440,10 +508,10 @@ const WordCloud: React.FC<WordCloudProps> = ({
           </LoadingOverlay>
         )}
         <ButtonContainer>
-          <IconButton onClick={() => setZoom(prev => Math.min(prev + 0.2, 5))} title="확대">
+          <IconButton onClick={handleZoomIn} title="확대">
             <FiZoomIn size={24} color="#2196F3" />
           </IconButton>
-          <IconButton onClick={() => setZoom(prev => Math.max(prev - 0.2, 0.1))} title="축소">
+          <IconButton onClick={handleZoomOut} title="축소">
             <FiZoomOut size={24} color="#2196F3" />
           </IconButton>
           <IconButton onClick={handleResetView} title="원래 크기">

@@ -782,6 +782,72 @@ function TextArcNumberInput({ value, onChange, unit = '' }) {
   );
 }
 
+// 슬라이더 관련 스타일 컴포넌트 추가
+const SliderWrapper = styled.div`
+  margin: 10px 0;
+`;
+
+const SliderInput = styled.input`
+  width: 100%;
+  -webkit-appearance: none;
+  height: 8px;
+  border-radius: 4px;
+  background: #e0e0e0;
+  outline: none;
+  
+  &::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #2196F3;
+    cursor: pointer;
+    transition: all 0.2s;
+    
+    &:hover {
+      background: #0d8bf2;
+      transform: scale(1.1);
+    }
+  }
+  
+  &::-moz-range-thumb {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #2196F3;
+    cursor: pointer;
+    border: none;
+    transition: all 0.2s;
+    
+    &:hover {
+      background: #0d8bf2;
+      transform: scale(1.1);
+    }
+  }
+`;
+
+const SliderLabels = styled.div`
+  display: flex;
+  justify-content: space-between;
+  margin-top: 4px;
+  font-size: 0.8em;
+  color: #666;
+`;
+
+const Label = styled.div`
+  font-size: 0.9rem;
+  color: #475569;
+  margin-bottom: 5px;
+`;
+
+const Description = styled.div`
+  margin-top: 8px;
+  font-size: 0.85em;
+  color: #666;
+  line-height: 1.4;
+`;
+
 interface TextArcControlPanelProps {
   maxSelectedWords: number;
   onMaxSelectedWordsChange: (max: number) => void;
@@ -799,6 +865,8 @@ interface TextArcControlPanelProps {
   onDefaultTextColorChange: (color: string) => void;
   maxSentenceLength: number;
   onMaxSentenceLengthChange: (length: number) => void;
+  minWordFrequency: number;
+  onMinWordFrequencyChange: (value: number) => void;
 }
 
 const TextArcControlPanel: React.FC<TextArcControlPanelProps> = ({
@@ -817,7 +885,9 @@ const TextArcControlPanel: React.FC<TextArcControlPanelProps> = ({
   defaultTextColor,
   onDefaultTextColorChange,
   maxSentenceLength,
-  onMaxSentenceLengthChange
+  onMaxSentenceLengthChange,
+  minWordFrequency,
+  onMinWordFrequencyChange
 }) => {
   const [isColorPopupOpen, setIsColorPopupOpen] = useState(false);
   
@@ -942,6 +1012,12 @@ const TextArcControlPanel: React.FC<TextArcControlPanelProps> = ({
     setter(e.target.value);
   };
   
+  // 빈도수 슬라이더 변경 핸들러
+  const handleFrequencyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = parseInt(e.target.value, 10);
+    onMinWordFrequencyChange(value);
+  };
+  
   return (
     <Container>
       <Section>
@@ -1060,6 +1136,25 @@ const TextArcControlPanel: React.FC<TextArcControlPanelProps> = ({
               value={maxSentenceLength}
               onChange={onMaxSentenceLengthChange}
               unit="자"
+            />
+          </SliderContainer>
+        </div>
+        
+        <div style={{ marginBottom: '15px' }}>
+          <SubTitle>최소 빈도수</SubTitle>
+          <SliderContainer>
+            <Slider
+              type="range"
+              min={1}
+              max={10}
+              value={minWordFrequency}
+              defaultValue={2}
+              onChange={(e) => onMinWordFrequencyChange(parseInt(e.target.value))}
+            />
+            <NumberInput
+              value={minWordFrequency}
+              onChange={onMinWordFrequencyChange}
+              unit="회"
             />
           </SliderContainer>
         </div>

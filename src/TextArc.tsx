@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styled, { createGlobalStyle } from 'styled-components';
 import TextInput from './components/TextInput';
@@ -210,6 +210,9 @@ const TextArc: React.FC = () => {
   // 새로운 상태 추가
   const [maxSentenceLength, setMaxSentenceLength] = useState<number>(30); // 기본값 30
   
+  // 빈도수 필터 슬라이더를 위한 상태 추가
+  const [minWordFrequency, setMinWordFrequency] = useState<number>(2); // 기본값 2
+  
   const navigateToRoot = () => {
     navigate('/');
   };
@@ -273,6 +276,25 @@ const TextArc: React.FC = () => {
     setMaxSentenceLength(length);
   };
   
+  // 빈도수 필터링 핸들러 추가
+  const handleMinWordFrequencyChange = (value: number) => {
+    setMinWordFrequency(value);
+    setRenderKey(prev => prev + 1); // 변경 시 재렌더링
+  };
+  
+  // 필터링된 단어 계산
+  const filteredWords = useMemo(() => {
+    return processedWords.filter(word => 
+      !excludedWords.includes(word.text) && 
+      word.value >= minWordFrequency
+    );
+  }, [processedWords, excludedWords, minWordFrequency]);
+  
+  useEffect(() => {
+    // 컴포넌트가 마운트될 때 초기값을 한 번 더 설정하여 UI에 반영
+    handleMinWordFrequencyChange(2);
+  }, []);
+  
   return (
     <>
       <GlobalStyle />
@@ -313,6 +335,8 @@ const TextArc: React.FC = () => {
               onDefaultTextColorChange={handleDefaultTextColorChange}
               maxSentenceLength={maxSentenceLength}
               onMaxSentenceLengthChange={handleMaxSentenceLengthChange}
+              minWordFrequency={minWordFrequency}
+              onMinWordFrequencyChange={handleMinWordFrequencyChange}
             />
           </ControlPanelContainer>
           
@@ -326,7 +350,7 @@ const TextArc: React.FC = () => {
             <ArcSection>
               <TextArcVisualizer 
                 key={renderKey}
-                words={processedWords}
+                words={filteredWords}
                 text={text}
                 isGenerating={isGenerating}
                 processingStatus={processingStatus}
