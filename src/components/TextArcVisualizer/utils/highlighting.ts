@@ -1,6 +1,13 @@
 import * as d3 from 'd3';
 
 /**
+ * 정규 표현식 특수 문자를 이스케이프 처리하는 함수
+ */
+function escapeRegExp(string: string) {
+  return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+/**
  * 문장 내 단어 강조 함수
  */
 export function highlightWordInSentences(wordToHighlight: string, color: string) {
@@ -25,24 +32,35 @@ export function highlightWordInSentences(wordToHighlight: string, color: string)
         
       // 단어 위치에 따라 텍스트 분할 및 강조
       let lastIndex = 0;
-      const wordRegex = new RegExp(`\\b${wordLower}\\b`, 'gi');
-      let match;
       
-      while ((match = wordRegex.exec(displayText)) !== null) {
-        // 단어 앞 텍스트
-        if (match.index > lastIndex) {
-          sentenceEl.append('tspan')
-            .text(displayText.substring(lastIndex, match.index))
-            .attr('fill', '#94a3b8');
-        }
+      try {
+        // 안전한 정규 표현식 생성
+        const escapedWord = escapeRegExp(wordLower);
+        const wordRegex = new RegExp(`\\b${escapedWord}\\b`, 'gi');
+        let match;
         
-        // 강조할 단어
-        sentenceEl.append('tspan')
-          .text(displayText.substring(match.index, match.index + match[0].length))
-          .attr('fill', color)
-          .attr('font-weight', 'bold');
+        while ((match = wordRegex.exec(displayText)) !== null) {
+          // 단어 앞 텍스트
+          if (match.index > lastIndex) {
+            sentenceEl.append('tspan')
+              .text(displayText.substring(lastIndex, match.index))
+              .attr('fill', '#94a3b8');
+          }
           
-        lastIndex = match.index + match[0].length;
+          // 강조할 단어
+          sentenceEl.append('tspan')
+            .text(displayText.substring(match.index, match.index + match[0].length))
+            .attr('fill', color)
+            .attr('font-weight', 'bold');
+            
+          lastIndex = match.index + match[0].length;
+        }
+      } catch (error) {
+        console.error('정규 표현식 오류:', error);
+        // 오류 발생시 단순 텍스트로 표시
+        sentenceEl.text(displayText)
+          .attr('fill', '#94a3b8');
+        return;
       }
       
       // 마지막 단어 이후 텍스트

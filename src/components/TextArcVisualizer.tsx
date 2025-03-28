@@ -273,6 +273,16 @@ const TextArcVisualizer: React.FC<TextArcVisualizerProps> = ({
     return Math.atan2(sumY, sumX);
   };
 
+  // 단어 정규식 생성을 위한 안전한 함수
+  function createSafeWordRegex(pattern: string): RegExp | null {
+    try {
+      return new RegExp(pattern, 'g');
+    } catch (error) {
+      console.error('정규식 생성 오류:', error, '패턴:', pattern);
+      return null;
+    }
+  }
+
   // D3 시각화 렌더링 함수를 별도로 분리
   const renderVisualization = useCallback(() => {
     if (!containerRef.current || !words.length || !text) return;
@@ -342,14 +352,21 @@ const TextArcVisualizer: React.FC<TextArcVisualizerProps> = ({
       };
       
       // 문장 내 단어 위치 분석
-      const wordRegex = /\b\w+\b/g;
-      let match;
-      while ((match = wordRegex.exec(sentence.toLowerCase())) !== null) {
-        sentenceData.wordPositions.push({
-          word: match[0],
-          start: match.index,
-          end: match.index + match[0].length
-        });
+      try {
+        const safeRegex = createSafeWordRegex('\\b\\w+\\b');
+        if (safeRegex) {
+          let match;
+          const lowercaseSentence = sentence.toLowerCase();
+          while ((match = safeRegex.exec(lowercaseSentence)) !== null) {
+            sentenceData.wordPositions.push({
+              word: match[0],
+              start: match.index,
+              end: match.index + match[0].length
+            });
+          }
+        }
+      } catch (error) {
+        console.error('문장 분석 오류:', error, '문장:', sentence);
       }
       
       // 회전 없이 텍스트 배치
@@ -392,10 +409,15 @@ const TextArcVisualizer: React.FC<TextArcVisualizerProps> = ({
       
       // 단어가 등장하는 문장 인덱스 찾기
       sentences.forEach((sentence, i) => {
-        const regex = new RegExp(`\\b${word.text}\\b`, 'i');
-        if (regex.test(sentence)) {
-          wordOccurrences.push(i);
-          console.log(`단어 "${word.text}" 발견: 문장 ${i} - "${sentence}"`);
+        try {
+          const escapedWord = escapeRegExp(word.text);
+          const safeRegex = createSafeWordRegex(`\\b${escapedWord}\\b`);
+          if (safeRegex && sentence.toLowerCase().includes(word.text.toLowerCase())) {
+            wordOccurrences.push(i);
+            console.log(`단어 "${word.text}" 발견: 문장 ${i} - "${sentence}"`);
+          }
+        } catch (error) {
+          console.error('단어 검색 오류:', error, '단어:', word.text, '문장:', sentence);
         }
       });
       
@@ -723,6 +745,47 @@ const TextArcVisualizer: React.FC<TextArcVisualizerProps> = ({
   }, []);
   
   // 문장 내 특정 단어를 강조하는 함수
+  function findSafeWordMatches(text: string, word: string, defaultTextColor: string, color: string, sentenceEl: any) {
+    try {
+      // 단어를 이스케이프하여 안전한 정규식 생성
+      const escapedWord = escapeRegExp(word);
+      const wordRegex = new RegExp(`\\b${escapedWord}\\b`, 'gi');
+      let match;
+      let lastIndex = 0;
+
+      // 정규식으로 단어 찾기
+      while ((match = wordRegex.exec(text)) !== null) {
+        // 단어 앞 텍스트
+        if (match.index > lastIndex) {
+          sentenceEl.append('tspan')
+            .text(text.substring(lastIndex, match.index))
+            .attr('fill', defaultTextColor);
+        }
+        
+        // 강조할 단어
+        sentenceEl.append('tspan')
+          .text(text.substring(match.index, match.index + match[0].length))
+          .attr('fill', color)
+          .attr('font-weight', 'bold');
+          
+        lastIndex = match.index + match[0].length;
+      }
+      
+      // 마지막 단어 이후 텍스트
+      if (lastIndex < text.length) {
+        sentenceEl.append('tspan')
+          .text(text.substring(lastIndex))
+          .attr('fill', defaultTextColor);
+      }
+      
+      return true;
+    } catch (error) {
+      console.error('정규 표현식 오류:', error, '문제가 된 단어:', word);
+      return false;
+    }
+  }
+
+  // 그 다음 highlightWordInSentences 함수에서 이 함수를 사용
   function highlightWordInSentences(wordToHighlight: string, color: string) {
     const wordLower = wordToHighlight.toLowerCase();
     
@@ -734,7 +797,7 @@ const TextArcVisualizer: React.FC<TextArcVisualizerProps> = ({
       
       const sentenceText = sentenceData.text.toLowerCase();
       
-      // 문장 내 단어 위치 찾기
+      // 문장 내 단어 위치 찾기 - 간단한 includes 검사만으로 시작
       if (sentenceText.includes(wordLower)) {
         // 기존 문장 텍스트 제거하고 SVG 텍스트 스팬으로 교체
         sentenceEl.text('');
@@ -743,32 +806,12 @@ const TextArcVisualizer: React.FC<TextArcVisualizerProps> = ({
           ? sentenceData.text.substring(0, maxSentenceLength) + '...' 
           : sentenceData.text;
           
-        // 단어 위치에 따라 텍스트 분할 및 강조
-        let lastIndex = 0;
-        const wordRegex = new RegExp(`\\b${wordLower}\\b`, 'gi');
-        let match;
+        // 안전한 함수로 단어 강조 시도
+        const success = findSafeWordMatches(displayText, wordLower, defaultTextColor, color, sentenceEl);
         
-        while ((match = wordRegex.exec(displayText)) !== null) {
-          // 단어 앞 텍스트
-          if (match.index > lastIndex) {
-            sentenceEl.append('tspan')
-              .text(displayText.substring(lastIndex, match.index))
-              .attr('fill', defaultTextColor);
-          }
-          
-          // 강조할 단어
-          sentenceEl.append('tspan')
-            .text(displayText.substring(match.index, match.index + match[0].length))
-            .attr('fill', color)
-            .attr('font-weight', 'bold');
-            
-          lastIndex = match.index + match[0].length;
-        }
-        
-        // 마지막 단어 이후 텍스트
-        if (lastIndex < displayText.length) {
-          sentenceEl.append('tspan')
-            .text(displayText.substring(lastIndex))
+        // 강조 실패 시 기본 텍스트로 표시
+        if (!success) {
+          sentenceEl.text(displayText)
             .attr('fill', defaultTextColor);
         }
       }
@@ -889,6 +932,11 @@ const TextArcVisualizer: React.FC<TextArcVisualizerProps> = ({
       }
     });
   }, [selectedWords, words, selectedColors, maxSentenceLength]);
+  
+  // 이 함수를 추가
+  function escapeRegExp(string: string) {
+    return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  }
   
   if (words.length === 0 || !text) {
     return (
